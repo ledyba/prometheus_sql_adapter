@@ -1,0 +1,25 @@
+---
+version: '3.7'
+
+services:
+  prometheus_sql_adapter:
+    container_name: prometheus_sql_adapter
+    hostname: prometheus_sql_adapter
+    image: prometheus_sql_adapter
+    build:
+      context: ./
+    restart: always
+    command: "web --listen '0.0.0.0:8080' --db '-''"
+    expose:
+      - '8080'
+    networks:
+      - planet-link
+    logging:
+      driver: "json-file"
+      options:
+        max-file: '4'
+        max-size: '250m'
+networks:
+  planet-link:
+    external:
+      name: planet-link

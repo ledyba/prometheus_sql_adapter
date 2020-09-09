@@ -1,0 +1,28 @@
+name: Build single binary on Linux
+
+on:
+  push:
+    branches-ignore:
+      - dependabot/**
+  pull_request:
+    branches:
+      - magistra
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: bash helper/build.sh
+      - name: Upload result
+        uses: actions/upload-artifact@v2
+        with:
+          name: prometheus_sql_adapter
+          path: artifacts/prometheus_sql_adapter
+      - name: Inspect disk usage
+        shell: bash
+        run: du -sh .
