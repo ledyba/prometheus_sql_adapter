@@ -10,6 +10,7 @@ use std::process::exit;
 
 #[macro_use]
 extern crate log;
+use env_logger::Env;
 
 use clap::{App, Arg, SubCommand, ArgMatches};
 
@@ -59,11 +60,12 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
       .run(sock)
       .await;
   });
+  info!("Good bye!");
   Ok(())
 }
 
 fn main() {
-  env_logger::init();
+  env_logger::from_env(Env::default().default_filter_or("info")).init();
 
   let app = App::new("prometheus_sql_adapter")
     .version("0.1.0")
