@@ -48,6 +48,9 @@ pub async fn write(conf: Arc<context::Context>, body: Bytes) -> Result<impl Repl
   }
   let req = proto_parse_result.unwrap();
   for ts in req.timeseries.iter() {
+    for s in ts.samples.iter() {
+      info!("[W] {}: {}", s.timestamp, s.value);
+    }
   }
   Ok(warp::reply::html("OK").into_response())
 }
@@ -68,9 +71,8 @@ pub async fn read(body: Bytes) -> Result<impl Reply, reject::Rejection> {
   // create response
   let req = proto_parse_result.unwrap();
   for q in req.queries.iter() {
-    
+    info!("[R] {} -> {}", q.start_timestamp_ms, q.end_timestamp_ms);
   }
-
   let mut resp = ReadResponse::new();
 
   // return to client.
