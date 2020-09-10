@@ -64,6 +64,7 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
 fn main() {
   env_logger::init();
+
   let app = App::new("prometheus_sql_adapter")
     .version("0.1.0")
     .author("Kaede Fujisaki <psi@7io.org>")
