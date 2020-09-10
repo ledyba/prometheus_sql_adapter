@@ -8,6 +8,9 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::process::exit;
 
+#[macro_use]
+extern crate log;
+
 use clap::{App, Arg, SubCommand, ArgMatches};
 
 use warp::Filter;
@@ -60,6 +63,7 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() {
+    env_logger::init();
     let app = App::new("prometheus_sql_adapter")
       .version("0.1.0")
       .author("Kaede Fujisaki <psi@7io.org>")
@@ -81,12 +85,12 @@ fn main() {
     match m.subcommand_name() {
         Some("web") => {
             if let Err(err) = web(m.subcommand_matches("web").unwrap()) {
-                eprint!("Failed to start web: {:?}\n", err);
+                error!("Failed to start web: {:?}\n", err);
                 exit(-1);
             }
         }
         None | Some(_) => {
-            eprint!("{}\n", m.usage());
+            error!("{}\n", m.usage());
             exit(-1);
         }
     }

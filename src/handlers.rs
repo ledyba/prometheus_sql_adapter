@@ -67,8 +67,11 @@ pub async fn read(body: Bytes) -> Result<impl Reply, reject::Rejection> {
 
   // create response
   let req = proto_parse_result.unwrap();
+  for q in req.queries.iter() {
+    
+  }
 
-  let resp = ReadResponse::new();
+  let mut resp = ReadResponse::new();
 
   // return to client.
   let resp_bytes_result = resp.write_to_bytes();
