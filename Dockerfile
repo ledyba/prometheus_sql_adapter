@@ -3,7 +3,7 @@ FROM ekidd/rust-musl-builder as builder
 WORKDIR /home/rust/src
 COPY . .
 
-RUN cargo build --release --target=x86_64-unknown-linux-musl
+RUN chown -R $(whoami) . && cargo build --release --target=x86_64-unknown-linux-musl
 
 FROM alpine:3.12
 
