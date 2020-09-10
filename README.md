@@ -39,7 +39,7 @@ services:
     build:
       context: ./
     restart: always
-    command: "web --listen '0.0.0.0:8080' --db '-''"
+    command: "web --listen '0.0.0.0:8080' --db '-'"
 ```
 
 then,
@@ -51,4 +51,11 @@ docker-comopse up -d
 
 ## Using from Prometheus
 
-TODO
+Write these line to `/etc/prometheus/config.yml`
+
+```yaml
+remote_write:
+  - url: 'http://<hostname>:8080/write'
+remote_read:
+  - url: 'http://<hostname>:8080/read'
+```

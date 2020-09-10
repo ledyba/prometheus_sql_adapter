@@ -55,7 +55,7 @@ pub async fn write(conf: Arc<context::Context>, body: Bytes) -> Result<impl Repl
   Ok(warp::reply::html("OK").into_response())
 }
 
-pub async fn read(body: Bytes) -> Result<impl Reply, reject::Rejection> {
+pub async fn read(conf: Arc<context::Context>, body: Bytes) -> Result<impl Reply, reject::Rejection> {
   // parse response
   let mut decoder = snap::raw::Decoder::new();
   let decoding_result: Result<Vec<u8>,snap::Error> = decoder.decompress_vec(&body.to_vec());

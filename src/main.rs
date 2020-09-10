@@ -46,15 +46,24 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     .unwrap();
 
   rt.block_on(async move {
-    let write_handler = move |body: Bytes| handlers::write(conf.clone(), body);
+    let write_conf = conf.clone();
+    let write_handler = move |body: Bytes| handlers::write(write_conf.clone(), body);
     let writer = warp::post()
       .and(warp::path("write"))
       .and(warp::body::content_length_limit(1024 * 1024 * 16))
       .and(warp::body::bytes())
       .and_then(write_handler);
+    let read_conf = conf.clone();
+    let read_handler = move |body: Bytes| handlers::read(read_conf.clone(), body);
+    let reader = warp::post()
+      .and(warp::path("read"))
+      .and(warp::body::content_length_limit(1024 * 1024 * 16))
+      .and(warp::body::bytes())
+      .and_then(read_handler);
     let index = warp::path::end().and_then(handlers::not_found);
     let router = index
       .or(writer)
+      .or(reader)
       .or(warp::any().and_then(handlers::not_found));
     warp::serve(router)
       .run(sock)
