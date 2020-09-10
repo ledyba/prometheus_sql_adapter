@@ -79,7 +79,7 @@ fn main() {
   let app = App::new("prometheus_sql_adapter")
     .version("0.1.0")
     .author("Kaede Fujisaki <psi@7io.org>")
-    .about("Monitor weathers in prometheus!")
+    .about("Prometheus SQL Remote Storage Adapter for Generic RDBMS")
     .subcommand(SubCommand::with_name("web")
       .arg(Arg::with_name("listen")
         .long("listen")
