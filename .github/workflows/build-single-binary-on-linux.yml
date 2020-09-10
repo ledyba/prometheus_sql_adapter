@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        run: bash helper/build.sh
+        run: RUST_BACKTRACE=1 bash helper/build.sh
       - name: Upload result
         uses: actions/upload-artifact@v2
         with:
