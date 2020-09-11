@@ -20,6 +20,8 @@ services:
       - './data/:/var/lib/sqlite/'
     ports:
       - '8081:8080'
+    environment:
+      - 'RUST_BACKTRACE=1'
     networks:
       - planet-link
     logging:
