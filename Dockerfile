@@ -19,4 +19,5 @@ ENV SSL_CERT_DIR=/etc/ssl/certs
 RUN ["chmod", "a+x", "/prometheus_sql_adapter"]
 
 EXPOSE 8080
+USER nobody
 ENTRYPOINT ["/prometheus_sql_adapter"]
