@@ -5,7 +5,7 @@
  * Copyright 2020-, Kaede Fujisaki
  *****************************************************************************/
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
 use std::process::exit;
 
 #[macro_use]
@@ -20,6 +20,7 @@ use warp::hyper::body::Bytes;
 mod context;
 mod handlers;
 mod proto;
+mod repo;
 
 fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
   let sock = if let Some(listen) = m.value_of("listen") {
@@ -33,11 +34,6 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     return Err("listen is not set.".into())
   };
 
-  let conf = Arc::new(context::Context {
-    cache: RwLock::new(cascara::Cache::with_window_size(100, 20)),
-    db_uri: db_uri.to_string(),
-  });
-
   let mut rt = tokio::runtime::Builder::new()
     .core_threads(32)
     .threaded_scheduler()
@@ -45,7 +41,13 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     .build()
     .unwrap();
 
-  rt.block_on(async move {
+  rt.block_on(async {
+    let db = repo::open(db_uri).await?;
+    let conf = Arc::new(context::Context {
+      cache: tokio::sync::RwLock::new(cascara::Cache::with_window_size(100, 20)),
+      db,
+    });
+
     let write_conf = conf.clone();
     let write_handler = move |body: Bytes| handlers::write(write_conf.clone(), body);
     let writer = warp::post()
@@ -68,9 +70,8 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     warp::serve(router)
       .run(sock)
       .await;
-  });
-  info!("Good bye!");
-  Ok(())
+    Ok(())
+  })
 }
 
 fn main() {
@@ -91,7 +92,7 @@ fn main() {
         .long("db")
         .takes_value(true)
         .allow_hyphen_values(true)
-        .default_value("-")
+        .default_value("sqlite:")
         .required(false)));
   let m = app.get_matches();
   match m.subcommand_name() {

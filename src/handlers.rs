@@ -12,16 +12,16 @@ use warp::hyper::body::{Bytes, Body};
 use warp::reply::Reply;
 use warp::reject;
 use warp::http::uri;
-use warp::http::StatusCode;
 use warp::reply::Response;
 
 extern crate snap;
 use snap::raw::{Decoder, Encoder};
 
-use crate::context;
-use crate::proto;
-use crate::proto::remote::{WriteRequest, ReadRequest, ReadResponse};
+extern crate protobuf;
 use protobuf::Message;
+
+use crate::context;
+use crate::proto::remote::{WriteRequest, ReadRequest, ReadResponse};
 
 pub async fn not_found() -> Result<impl Reply, reject::Rejection> {
   Ok(warp::redirect(uri::Uri::from_str("/").unwrap()))
@@ -35,8 +35,12 @@ fn create_error_response(code: u16, err: impl std::error::Error) -> Response {
     .unwrap()
 }
 
-pub async fn write(conf: Arc<context::Context>, body: Bytes) -> Result<impl Reply, reject::Rejection> {
-  let mut decoder = snap::raw::Decoder::new();
+fn response_db_error(err: sqlx::error::Error) -> Result<impl Reply, reject::Rejection> {
+  Ok(create_error_response(500, err))
+}
+
+pub async fn write(mut conf: Arc<context::Context>, body: Bytes) -> Result<impl Reply, reject::Rejection> {
+  let mut decoder = Decoder::new();
   let decoding_result: Result<Vec<u8>,snap::Error> = decoder.decompress_vec(&body.to_vec());
   if decoding_result.is_err() {
     return Ok(create_error_response(400, decoding_result.unwrap_err()));
@@ -47,10 +51,9 @@ pub async fn write(conf: Arc<context::Context>, body: Bytes) -> Result<impl Repl
     return Ok(create_error_response(400, proto_parse_result.unwrap_err()));
   }
   let req = proto_parse_result.unwrap();
-  for ts in req.timeseries.iter() {
-    for s in ts.samples.iter() {
-      info!("[W] {}: {}", s.timestamp, s.value);
-    }
+  let result = conf.db.clone().write(req).await;
+  if result.is_err() {
+    response_db_error(result.unwrap_err());
   }
   Ok(warp::reply::html("OK").into_response())
 }
