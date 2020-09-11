@@ -46,8 +46,7 @@ create index sample_timestamp_index on samples(timestamp);
     let mut tx = self.pool.begin().await?;
     for ts in req.timeseries.iter() {
       let _ = sqlx::query("insert into timeseries default values").execute(&mut tx).await?;
-      let mut cur: SqliteCursor = sqlx::query("select id from timeseries where rowid = last_insert_rowid()").fetch(&mut tx);
-      let id: i64 = cur.next().await?.expect("Failed to insert timeseries").get(0);
+      let id: (i64,) = sqlx::query_as("select id from timeseries where rowid = last_insert_rowid()").fetch_one(&mut tx).await?;
       for sample in ts.samples.iter() {
         sqlx::query(r"insert into samples (timeseries_id, timestamp, value) values (?, ?, ?)")
           .bind(id)
