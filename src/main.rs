@@ -34,6 +34,8 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     return Err("listen is not set.".into())
   };
 
+  let init = m.values_of("init").is_some();
+
   let mut rt = tokio::runtime::Builder::new()
     .core_threads(32)
     .threaded_scheduler()
@@ -42,7 +44,11 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     .unwrap();
 
   rt.block_on(async {
-    let db = repo::open(db_uri).await?;
+    let mut db = repo::open(db_uri).await?;
+    if init {
+      let _ = db.init().await?;
+    }
+
     let conf = Arc::new(context::Context {
       cache: tokio::sync::RwLock::new(cascara::Cache::with_window_size(100, 20)),
       db,
@@ -93,6 +99,10 @@ fn main() {
         .takes_value(true)
         .allow_hyphen_values(true)
         .default_value("sqlite:")
+        .required(false))
+      .arg(Arg::with_name("init")
+        .long("init")
+        .takes_value(false)
         .required(false)));
   let m = app.get_matches();
   match m.subcommand_name() {
