@@ -26,7 +26,7 @@ impl SqliteRepo {
 create table timeseries(
   id integer primary key autoincrement
 );
-create table label(
+create table labels(
   id integer primary key autoincrement,
   timeseries_id integer,
   name text,
@@ -45,7 +45,7 @@ create index sample_timestamp_index on samples(timestamp);
   pub async fn write(&mut self, req: WriteRequest) -> sqlx::Result<()> {
     let mut tx = self.pool.begin().await?;
     for ts in req.timeseries.iter() {
-      let _ = sqlx::query("insert into timeseries () values ()").execute(&mut tx).await?;
+      let _ = sqlx::query("insert into timeseries default values").execute(&mut tx).await?;
       let mut cur: SqliteCursor = sqlx::query("select id from timeseries where rowid = last_insert_rowid()").fetch(&mut tx);
       let id: i64 = cur.next().await?.expect("Failed to insert timeseries").get(0);
       for sample in ts.samples.iter() {
@@ -57,7 +57,7 @@ create index sample_timestamp_index on samples(timestamp);
           .await?;
       }
       for label in ts.labels.iter() {
-        sqlx::query(r"insert into samples (timeseries_id, name, value) values (?, ?, ?)")
+        sqlx::query(r"insert into labels (timeseries_id, name, value) values (?, ?, ?)")
           .bind(id)
           .bind(label.name.as_str())
           .bind(label.value.as_str())
