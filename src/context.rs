@@ -5,11 +5,11 @@
  * Copyright 2020-, Kaede Fujisaki
  *****************************************************************************/
 
+use cascara::Cache;
 use tokio::sync::RwLock;
-use std::cell::RefCell;
-use std::sync::Arc;
+use crate::repo::Repo;
 
 pub struct Context {
-  pub cache: RwLock<cascara::Cache<String, String>>,
-  pub db: crate::repo::Repo,
+  pub cache: RwLock<Cache<String, String>>,
+  pub db: Repo,
 }
