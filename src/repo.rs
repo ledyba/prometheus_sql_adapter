@@ -15,18 +15,19 @@ pub enum Repo {
 }
 
 #[derive(Clone)]
-struct SqliteRepo {
+pub struct SqliteRepo {
   pool: sqlx::SqlitePool,
 }
 
 impl SqliteRepo {
   pub async fn init(&mut self) -> sqlx::Result<()> {
     let mut conn = self.pool.acquire().await?;
-    sqlx::query(r"
+    let _create_result = sqlx::query(r"
 create table timeseries(
   id integer primary key autoincrement
 );
 create table label(
+  id integer primary key autoincrement,
   timeseries_id integer,
   name text,
   value text
@@ -34,9 +35,10 @@ create table label(
 create table sample(
   id integer primary key autoincrement,
   timeseries_id integer,
-  timestamp: integer,
+  timestamp integer,
   value real
 );
+create index sample_timestamp_index on sample(timestamp);
 ").execute(&mut conn).await?;
     Ok(())
   }
