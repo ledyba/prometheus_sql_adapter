@@ -46,7 +46,10 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
   rt.block_on(async {
     let mut db = repo::open(db_uri).await?;
     if init {
-      let _ = db.init().await?;
+      match db.init().await {
+        Ok(()) => info!("Database initialized!"),
+        Err(err) => warn!("Failed to init DB: {:?}", err),
+      };
     }
 
     let conf = Arc::new(context::Context {

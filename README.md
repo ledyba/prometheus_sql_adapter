@@ -39,7 +39,15 @@ services:
     build:
       context: ./
     restart: always
-    command: "web --listen '0.0.0.0:8080' --db '-'"
+    command:
+      - 'web'
+      - '--listen'
+      - '0.0.0.0:8080'
+      - '--db'
+ # to use sqlite,
+      - 'sqlite:///var/lib/sqlite/prom.db'
+#     - 'sqlite:' # use in-memory db(for debugging)
+      - '--init' # init db before launching
 ```
 
 then,
