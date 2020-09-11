@@ -32,21 +32,39 @@ create table label(
   name text,
   value text
 );
-create table sample(
+create table samples(
   id integer primary key autoincrement,
   timeseries_id integer,
   timestamp integer,
   value real
 );
-create index sample_timestamp_index on sample(timestamp);
+create index sample_timestamp_index on samples(timestamp);
 ").execute(&mut conn).await?;
     Ok(())
   }
   pub async fn write(&mut self, req: WriteRequest) -> sqlx::Result<()> {
     let mut tx = self.pool.begin().await?;
-    let _ = tx.execute("insert into timeseries () values ()").await?;
-    let mut cur: SqliteCursor = tx.fetch("select id from timeseries where rowid = last_insert_rowid()");
-    let id: i64 = cur.next().await?.expect("Failed to insert timeseries").get(0);
+    for ts in req.timeseries.iter() {
+      let _ = sqlx::query("insert into timeseries () values ()").execute(&mut tx).await?;
+      let mut cur: SqliteCursor = sqlx::query("select id from timeseries where rowid = last_insert_rowid()").fetch(&mut tx);
+      let id: i64 = cur.next().await?.expect("Failed to insert timeseries").get(0);
+      for sample in ts.samples.iter() {
+        sqlx::query(r"insert into samples (timeseries_id, timestamp, value) values (?, ?, ?)")
+          .bind(id)
+          .bind(sample.timestamp)
+          .bind(sample.value)
+          .execute(&mut tx)
+          .await?;
+      }
+      for label in ts.labels.iter() {
+        sqlx::query(r"insert into samples (timeseries_id, name, value) values (?, ?, ?)")
+          .bind(id)
+          .bind(label.name.as_str())
+          .bind(label.value.as_str())
+          .execute(&mut tx)
+          .await?;
+      }
+    }
     tx.commit().await?;
     Ok(())
   }
