@@ -35,11 +35,11 @@ fn create_error_response(code: u16, err: impl std::error::Error) -> Response {
     .unwrap()
 }
 
-fn response_db_error(err: sqlx::error::Error) -> Result<impl Reply, reject::Rejection> {
-  Ok(create_error_response(500, err))
+fn response_db_error(err: sqlx::error::Error) -> Response {
+  create_error_response(500, err)
 }
 
-pub async fn write(mut conf: Arc<context::Context>, body: Bytes) -> Result<impl Reply, reject::Rejection> {
+pub async fn write(conf: Arc<context::Context>, body: Bytes) -> Result<impl Reply, reject::Rejection> {
   let mut decoder = Decoder::new();
   let decoding_result: Result<Vec<u8>,snap::Error> = decoder.decompress_vec(&body.to_vec());
   if decoding_result.is_err() {
@@ -53,7 +53,7 @@ pub async fn write(mut conf: Arc<context::Context>, body: Bytes) -> Result<impl 
   let req = proto_parse_result.unwrap();
   let result = conf.db.clone().write(req).await;
   if result.is_err() {
-    response_db_error(result.unwrap_err());
+    return Ok(response_db_error(result.unwrap_err()));
   }
   Ok(warp::reply::html("OK").into_response())
 }
