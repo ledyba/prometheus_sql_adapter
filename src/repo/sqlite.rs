@@ -27,24 +27,39 @@ impl Repo {
 create table if not exists timeseries(
   id integer primary key autoincrement
 );
+
 create table if not exists labels(
   id integer primary key autoincrement,
   timeseries_id integer,
-  name text,
-  value text
+  name integer,
+  value integer
 );
+
+create table if not exists literals(
+  id integer primary key autoincrement,
+  value text unique
+);
+
 create table if not exists samples(
   id integer primary key autoincrement,
   timeseries_id integer,
   timestamp integer,
   value real
 );
+
+-- labels
 create index if not exists labels_timeseries_index on labels(timeseries_id);
+
+-- samples
 create index if not exists samples_timestamp_index on samples(timestamp);
-create index if not exists samples_timeseries_id_index on samples(timeseries_id);
+create index if not exists samples_timeseries_index on samples(timeseries_id);
+
+-- literals
+create index if not exists literals_value_index on literals(value);
 ").execute(&mut conn).await?;
     Ok(())
   }
+
   pub async fn write(&mut self, req: WriteRequest) -> sqlx::Result<()> {
     let mut tx: Transaction<PoolConnection<SqliteConnection>> = self.pool.begin().await?;
     for ts in req.timeseries.iter() {
@@ -59,7 +74,12 @@ create index if not exists samples_timeseries_id_index on samples(timeseries_id)
           .await?;
       }
       for label in ts.labels.iter() {
-        sqlx::query::<Sqlite>(r"insert into labels (timeseries_id, name, value) values (?, ?, ?)")
+        sqlx::query::<Sqlite>(r"insert ignore into labels (value) values (?), (?)")
+          .bind(label.name.as_str())
+          .bind(label.value.as_str())
+          .execute(&mut tx)
+          .await;
+        sqlx::query::<Sqlite>(r"insert into labels (timeseries_id, name, value) values (?, (select id from literals where value = ?), (select id from literals where value = ?))")
           .bind(id.0)
           .bind(label.name.as_str())
           .bind(label.value.as_str())
@@ -70,6 +90,7 @@ create index if not exists samples_timeseries_id_index on samples(timeseries_id)
     tx.commit().await?;
     Ok(())
   }
+
   pub async fn read(&mut self, query: Query) -> sqlx::Result<QueryResult> {
     // FIXME
     Err(sqlx::Error::RowNotFound)
