@@ -40,6 +40,7 @@ pub async fn open(url: &str) -> std::result::Result<Repo, Box<dyn std::error::Er
       let pool = sqlx::sqlite::SqlitePool::builder()
         .connect_timeout(Duration::from_secs(10))
         .min_size(32)
+        .max_size(128)
         .build(url)
         .await.map_err(|err| err)?;
       Ok(Repo::Sqlite(sqlite::Repo::new(pool)))
