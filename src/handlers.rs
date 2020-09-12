@@ -53,7 +53,9 @@ pub async fn write(conf: Arc<context::Context>, body: Bytes) -> Result<impl Repl
   let req = proto_parse_result.unwrap();
   let result = conf.db.clone().write(req).await;
   if result.is_err() {
-    return Ok(response_db_error(result.unwrap_err()));
+    let err = result.unwrap_err();
+    error!("Failed to write to DB: {:?}", &err);
+    return Ok(response_db_error(err));
   }
   Ok(warp::reply::html("OK").into_response())
 }
