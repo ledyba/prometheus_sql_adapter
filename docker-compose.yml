@@ -15,7 +15,6 @@ services:
       - '0.0.0.0:8080'
       - '--db'
       - 'sqlite:///var/lib/sqlite/prom.db'
-      - '--init'
     volumes:
       - './data/:/var/lib/sqlite/'
     ports:

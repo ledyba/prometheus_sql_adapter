@@ -47,7 +47,6 @@ services:
  # to use sqlite,
       - 'sqlite:///var/lib/sqlite/prom.db'
 #     - 'sqlite:' # use in-memory db(for debugging)
-      - '--init' # init db before launching
 ```
 
 then,

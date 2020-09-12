@@ -24,24 +24,24 @@ impl SqliteRepo {
   pub async fn init(&mut self) -> sqlx::Result<()> {
     let mut conn = self.pool.acquire().await?;
     let _create_result = sqlx::query(r"
-create table timeseries(
+create table if not exists timeseries(
   id integer primary key autoincrement
 );
-create table labels(
+create table if not exists labels(
   id integer primary key autoincrement,
   timeseries_id integer,
   name text,
   value text
 );
-create table samples(
+create table if not exists samples(
   id integer primary key autoincrement,
   timeseries_id integer,
   timestamp integer,
   value real
 );
-create index labels_timeseries_index on labels(timeseries_id);
-create index samples_timestamp_index on samples(timestamp);
-create index samples_timeseries_id_index on samples(timeseries_id);
+create index if not exists labels_timeseries_index on labels(timeseries_id);
+create index if not exists samples_timestamp_index on samples(timestamp);
+create index if not exists samples_timeseries_id_index on samples(timeseries_id);
 ").execute(&mut conn).await?;
     Ok(())
   }
