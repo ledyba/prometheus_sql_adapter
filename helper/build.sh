@@ -6,4 +6,4 @@ cd ${PROJ_PATH}/..
 mkdir -p artifacts
 
 docker-compose build
-docker run --rm -v "${PWD}/artifacts:/artifacts" --entrypoint="cp" prometheus_sql_adapter "/prometheus_sql_adapter" "/artifacts"
+docker cp prometheus_sql_adapter:/prometheus_sql_adapter ${PWD}/artifacts/prometheus_sql_adapter
