@@ -36,7 +36,7 @@ impl Repo {
 pub async fn open(url: &str) -> std::result::Result<Repo, Box<dyn std::error::Error>> {
   match url {
     url if url.starts_with("sqlite:") => {
-      let pool = sqlx::sqlite::SqlitePool::builder().build(url).await.map_err(|err| err)?;
+      let pool = sqlx::sqlite::SqlitePool::builder().min_size(32).build(url).await.map_err(|err| err)?;
       Ok(Repo::Sqlite(sqlite::Repo::new(pool)))
     }
     url => Err(string_error::new_err(format!("Unsupportd DB: {}", url).as_str())),
