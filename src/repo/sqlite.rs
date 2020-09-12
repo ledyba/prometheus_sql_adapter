@@ -74,7 +74,7 @@ create index if not exists literals_value_index on literals(value);
           .await?;
       }
       for label in ts.labels.iter() {
-        sqlx::query::<Sqlite>(r"insert ignore into literals (value) values (?), (?)")
+        sqlx::query::<Sqlite>(r"insert or ignore into literals (value) values (?), (?)")
           .bind(label.name.as_str())
           .bind(label.value.as_str())
           .execute(&mut tx)
