@@ -63,6 +63,7 @@ create index if not exists literals_value_index on literals(value);
   pub async fn write(&mut self, req: WriteRequest) -> sqlx::Result<()> {
     let mut tx: Transaction<PoolConnection<SqliteConnection>> = self.pool.begin().await?;
     for ts in req.timeseries.iter() {
+      sqlx::query::<Sqlite>("PRAGMA busy_timeout = 10000;").execute(&mut tx).await?;
       sqlx::query::<Sqlite>("insert into timeseries default values").execute(&mut tx).await?;
       let id: (i64,) = SqliteQueryAs::fetch_one(sqlx::query_as("select id from timeseries where rowid = last_insert_rowid()"), &mut tx).await?;
       for sample in ts.samples.iter() {
