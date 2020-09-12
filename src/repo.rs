@@ -39,8 +39,9 @@ create table samples(
   timestamp integer,
   value real
 );
-create index labels_timestamp_index on labels(timestamp);
+create index labels_timeseries_index on labels(timeseries_id);
 create index samples_timestamp_index on samples(timestamp);
+create index samples_timeseries_id_index on samples(timeseries_id);
 ").execute(&mut conn).await?;
     Ok(())
   }
