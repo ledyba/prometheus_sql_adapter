@@ -6,8 +6,9 @@
  *****************************************************************************/
 
 use crate::proto::remote::{WriteRequest, Query, QueryResult};
-use sqlx::sqlite::SqliteCursor;
 use sqlx::prelude::*;
+use sqlx::{Transaction, SqliteConnection, Sqlite};
+use sqlx::pool::PoolConnection;
 
 #[derive(Clone)]
 pub enum Repo {
@@ -38,26 +39,27 @@ create table samples(
   timestamp integer,
   value real
 );
-create index sample_timestamp_index on samples(timestamp);
+create index labels_timestamp_index on labels(timestamp);
+create index samples_timestamp_index on samples(timestamp);
 ").execute(&mut conn).await?;
     Ok(())
   }
   pub async fn write(&mut self, req: WriteRequest) -> sqlx::Result<()> {
-    let mut tx = self.pool.begin().await?;
+    let mut tx: Transaction<PoolConnection<SqliteConnection>> = self.pool.begin().await?;
     for ts in req.timeseries.iter() {
-      let _ = sqlx::query("insert into timeseries default values").execute(&mut tx).await?;
-      let id: (i64,) = sqlx::query_as("select id from timeseries where rowid = last_insert_rowid()").fetch_one(&mut tx).await?;
+      let _ = sqlx::query::<Sqlite>("insert into timeseries default values").execute(&mut tx).await?;
+      let id: (i64,) = SqliteQueryAs::fetch_one(sqlx::query_as("select id from timeseries where rowid = last_insert_rowid()"), &mut tx).await?;
       for sample in ts.samples.iter() {
-        sqlx::query(r"insert into samples (timeseries_id, timestamp, value) values (?, ?, ?)")
-          .bind(id)
+        sqlx::query::<Sqlite>(r"insert into samples (timeseries_id, timestamp, value) values (?, ?, ?)")
+          .bind(id.0)
           .bind(sample.timestamp)
           .bind(sample.value)
           .execute(&mut tx)
           .await?;
       }
       for label in ts.labels.iter() {
-        sqlx::query(r"insert into labels (timeseries_id, name, value) values (?, ?, ?)")
-          .bind(id)
+        sqlx::query::<Sqlite>(r"insert into labels (timeseries_id, name, value) values (?, ?, ?)")
+          .bind(id.0)
           .bind(label.name.as_str())
           .bind(label.value.as_str())
           .execute(&mut tx)
