@@ -61,11 +61,23 @@ create index if not exists literals_value_index on literals(value);
   }
 
   pub async fn write(&mut self, req: WriteRequest) -> sqlx::Result<()> {
-    let mut tx: Transaction<PoolConnection<SqliteConnection>> = self.pool.begin().await?;
-    for ts in req.timeseries.iter() {
-      sqlx::query::<Sqlite>("PRAGMA busy_timeout = 10000;").execute(&mut tx).await?;
+    let id = {
+      let mut conn = self.pool.acquire().await?;
+      for ts in req.timeseries.iter() {
+        for label in ts.labels.iter() {
+          sqlx::query::<Sqlite>(r"insert or ignore into literals (value) values (?), (?)")
+            .bind(label.name.as_str())
+            .bind(label.value.as_str())
+            .execute(&mut conn)
+            .await?;
+        }
+      }
       sqlx::query::<Sqlite>("insert into timeseries default values").execute(&mut tx).await?;
       let id: (i64,) = SqliteQueryAs::fetch_one(sqlx::query_as("select id from timeseries where rowid = last_insert_rowid()"), &mut tx).await?;
+      id
+    };
+    let mut tx: Transaction<PoolConnection<SqliteConnection>> = self.pool.begin().await?;
+    for ts in req.timeseries.iter() {
       for sample in ts.samples.iter() {
         sqlx::query::<Sqlite>(r"insert into samples (timeseries_id, timestamp, value) values (?, ?, ?)")
           .bind(id.0)
@@ -75,11 +87,6 @@ create index if not exists literals_value_index on literals(value);
           .await?;
       }
       for label in ts.labels.iter() {
-        sqlx::query::<Sqlite>(r"insert or ignore into literals (value) values (?), (?)")
-          .bind(label.name.as_str())
-          .bind(label.value.as_str())
-          .execute(&mut tx)
-          .await?;
         sqlx::query::<Sqlite>(r"insert into labels (timeseries_id, name, value) values (?, (select id from literals where value = ?), (select id from literals where value = ?))")
           .bind(id.0)
           .bind(label.name.as_str())
