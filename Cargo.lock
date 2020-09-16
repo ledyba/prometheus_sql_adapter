@@ -1041,6 +1041,7 @@ dependencies = [
  "log",
  "protobuf",
  "protobuf-codegen-pure",
+ "rand 0.7.3",
  "snap",
  "sqlx",
  "string-error",

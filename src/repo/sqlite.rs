@@ -25,7 +25,7 @@ impl Repo {
     let mut conn = self.pool.acquire().await?;
     let _create_result = sqlx::query(r"
 create table if not exists timeseries(
-  id integer primary key autoincrement
+  id integer primary key
 );
 
 create table if not exists labels(
@@ -35,7 +35,7 @@ create table if not exists labels(
 );
 
 create table if not exists literals(
-  id integer primary key autoincrement,
+  id integer primary key,
   value text unique
 );
 
@@ -86,8 +86,10 @@ create index if not exists literals_value_index on literals(value);
       let mut conn = self.pool.acquire().await?;
       for ts in req.timeseries.iter() {
         for label in ts.labels.iter() {
-          sqlx::query::<Sqlite>(r"insert or ignore into literals (value) values (?), (?)")
+          sqlx::query::<Sqlite>(r"insert or ignore into literals (id, value) values (?, ?), (?, ?)")
+            .bind(rand::random::<i64>())
             .bind(label.name.as_str())
+            .bind(rand::random::<i64>())
             .bind(label.value.as_str())
             .execute(&mut conn)
             .await?;
@@ -96,10 +98,15 @@ create index if not exists literals_value_index on literals(value);
     }
     let id = {
       let mut conn = self.pool.acquire().await?;
-      let id: (i64,) = SqliteQueryAs::fetch_one(
-        sqlx::query_as("insert into timeseries default values; select id from timeseries where rowid = last_insert_rowid()"),
-        &mut conn).await?;
-      id.0
+      let mut id:i64 = 0;
+      for i in 0..10 {
+        id = rand::random::<i64>();
+        let result = sqlx::query("insert into timeseries (id) values (?)").bind(id).execute(&mut conn).await;
+        if result.is_ok() {
+          break;
+        }
+      }
+      id
     };
     let result = self.write_data(id, &req).await;
     if result.is_err() {
