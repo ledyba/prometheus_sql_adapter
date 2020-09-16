@@ -59,14 +59,14 @@ create index if not exists literals_value_index on literals(value);
   }
 
   pub async fn write_data(&mut self, id: i64, req: &WriteRequest) -> sqlx::Result<()> {
-    let mut tx: Transaction<PoolConnection<SqliteConnection>> = self.pool.begin().await?;
+    let mut conn = self.pool.acquire().await?;
     for ts in req.timeseries.iter() {
       for sample in ts.samples.iter() {
         sqlx::query::<Sqlite>(r"insert into samples (timeseries_id, timestamp, value) values (?, ?, ?)")
           .bind(id)
           .bind(sample.timestamp)
           .bind(sample.value)
-          .execute(&mut tx)
+          .execute(&mut conn)
           .await?;
       }
       for label in ts.labels.iter() {
@@ -74,11 +74,10 @@ create index if not exists literals_value_index on literals(value);
           .bind(id)
           .bind(label.name.as_str())
           .bind(label.value.as_str())
-          .execute(&mut tx)
+          .execute(&mut conn)
           .await?;
       }
     }
-    tx.commit().await?;
     Ok(())
   }
   pub async fn write(&mut self, req: WriteRequest) -> sqlx::Result<()> {
