@@ -29,7 +29,6 @@ create table if not exists timeseries(
 );
 
 create table if not exists labels(
-  id integer primary key autoincrement,
   timeseries_id integer,
   name integer,
   value integer
@@ -41,7 +40,6 @@ create table if not exists literals(
 );
 
 create table if not exists samples(
-  id integer primary key autoincrement,
   timeseries_id integer,
   timestamp integer,
   value real
@@ -97,9 +95,10 @@ create index if not exists literals_value_index on literals(value);
       }
     }
     let id = {
-      let mut tx = self.pool.acquire().await?;
-      sqlx::query::<Sqlite>("insert into timeseries default values").execute(&mut tx).await?;
-      let id: (i64,) = SqliteQueryAs::fetch_one(sqlx::query_as("select id from timeseries where rowid = last_insert_rowid()"), &mut tx).await?;
+      let mut conn = self.pool.acquire().await?;
+      let id: (i64,) = SqliteQueryAs::fetch_one(
+        sqlx::query_as("insert into timeseries default values; select id from timeseries where rowid = last_insert_rowid()"),
+        &mut conn).await?;
       id.0
     };
     let result = self.write_data(id, &req).await;
