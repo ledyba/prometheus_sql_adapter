@@ -5,7 +5,5 @@ cd ${PROJ_PATH}/..
 
 docker-compose up -d mysql
 sleep 5
-docker-compose exec mysql mysql \
-  --host localhost --port 3306 --protocol=TCP \
-  --user=root --password=root
+docker-compose exec mysql bash -c "mysql prometheus"
 docker-compose down

@@ -14,13 +14,14 @@ services:
       - '--listen'
       - '0.0.0.0:8080'
       - '--db'
-      - 'mysql://root:root@(mysql:3306)/'
+      - 'mysql://root:root@mysql:3306/db'
     volumes:
       - './data/:/var/lib/sqlite/'
     expose:
      - '8080'
     environment:
-      - 'RUST_BACKTRACE=1'
+      - 'RUST_BACKTRACE=full'
+      - 'RUST_LOG=error'
     networks:
       - local-link
       - planet-link
@@ -37,7 +38,10 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: 'root'
+      - 'MYSQL_ROOT_PASSWORD=root'
+      - 'MYSQL_DATABASE=db'
+      - 'MYSQL_USER=prom'
+      - 'MYSQL_PASS=prom'
     volumes:
       - './data/mysql:/var/lib/mysql/'
     networks:
@@ -81,7 +85,7 @@ services:
       - '--listen'
       - '0.0.0.0:8080'
       - '--db'
-      - 'mysql://root:root@mysql:3306/prometheus'
+      - 'mysql://root:root@mysql:3306/db'
     volumes:
       - './target/debug:/target'
     depends_on:
@@ -89,7 +93,8 @@ services:
     expose:
      - '8080'
     environment:
-      - 'RUST_BACKTRACE=1'
+      - 'RUST_BACKTRACE=full'
+      - 'RUST_LOG=error'
     networks:
       - local-link
       - planet-link
