@@ -31,7 +31,7 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
   let db_uri = if let Some(db_uri) = m.value_of("db") {
     db_uri
   } else {
-    return Err("listen is not set.".into())
+    return Err("db is not set.".into())
   };
 
   let mut rt = tokio::runtime::Builder::new()
@@ -56,20 +56,25 @@ fn web(m: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
       db,
     });
 
-    let write_conf = conf.clone();
-    let write_handler = move |body: Bytes| handlers::write(write_conf.clone(), body);
-    let writer = warp::post()
-      .and(warp::path("write"))
-      .and(warp::body::content_length_limit(1024 * 1024 * 16))
-      .and(warp::body::bytes())
-      .and_then(write_handler);
-    let read_conf = conf.clone();
-    let read_handler = move |body: Bytes| handlers::read(read_conf.clone(), body);
-    let reader = warp::post()
-      .and(warp::path("read"))
-      .and(warp::body::content_length_limit(1024 * 1024 * 16))
-      .and(warp::body::bytes())
-      .and_then(read_handler);
+    let writer = {
+      let conf = conf.clone();
+      let handler = move |body: Bytes| handlers::write(conf.clone(), body);
+      warp::post()
+        .and(warp::path("write"))
+        .and(warp::body::content_length_limit(1024 * 1024 * 16))
+        .and(warp::body::bytes())
+        .and_then(handler)
+    };
+    let reader = {
+      let conf = conf.clone();
+      let handler = move |body: Bytes| handlers::read(conf.clone(), body);
+      warp::post()
+        .and(warp::path("read"))
+        .and(warp::body::content_length_limit(1024 * 1024 * 16))
+        .and(warp::body::bytes())
+        .and_then(handler)
+    };
+
     let index = warp::path::end().and_then(handlers::not_found);
     let router = index
       .or(writer)

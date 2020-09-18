@@ -39,7 +39,7 @@ fn response_db_error(err: sqlx::error::Error) -> Response {
   create_error_response(500, err)
 }
 
-pub async fn write(conf: Arc<context::Context>, body: Bytes) -> Result<impl Reply, reject::Rejection> {
+pub async fn write(context: Arc<context::Context>, body: Bytes) -> Result<impl Reply, reject::Rejection> {
   let mut decoder = Decoder::new();
   let decoding_result: Result<Vec<u8>,snap::Error> = decoder.decompress_vec(&body.to_vec());
   if decoding_result.is_err() {
@@ -51,7 +51,7 @@ pub async fn write(conf: Arc<context::Context>, body: Bytes) -> Result<impl Repl
     return Ok(create_error_response(400, proto_parse_result.unwrap_err()));
   }
   let req = proto_parse_result.unwrap();
-  let result = conf.db.clone().write(req).await;
+  let result = context.db.clone().write(req).await;
   if result.is_err() {
     let err = result.unwrap_err();
     error!("Failed to write to DB: {:?}", &err);
@@ -60,7 +60,7 @@ pub async fn write(conf: Arc<context::Context>, body: Bytes) -> Result<impl Repl
   Ok(warp::reply::html("OK").into_response())
 }
 
-pub async fn read(conf: Arc<context::Context>, body: Bytes) -> Result<impl Reply, reject::Rejection> {
+pub async fn read(context: Arc<context::Context>, body: Bytes) -> Result<impl Reply, reject::Rejection> {
   // parse response
   let mut decoder = snap::raw::Decoder::new();
   let decoding_result: Result<Vec<u8>,snap::Error> = decoder.decompress_vec(&body.to_vec());
@@ -75,10 +75,15 @@ pub async fn read(conf: Arc<context::Context>, body: Bytes) -> Result<impl Reply
 
   // create response
   let req = proto_parse_result.unwrap();
-  for q in req.queries.iter() {
-    info!("[R] {} -> {}", q.start_timestamp_ms, q.end_timestamp_ms);
-  }
   let mut resp = ReadResponse::new();
+  for query in req.queries.iter() {
+    let result = context.db.clone().read(query).await;
+    if result.is_err() {
+      let err = result.unwrap_err();
+      error!("Failed to read from DB: {:?}", &err);
+      return Ok(response_db_error(err));
+    }
+ }
 
   // return to client.
   let resp_bytes_result = resp.write_to_bytes();

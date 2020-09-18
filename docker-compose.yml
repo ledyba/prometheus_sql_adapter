@@ -14,21 +14,94 @@ services:
       - '--listen'
       - '0.0.0.0:8080'
       - '--db'
-      - 'sqlite:///var/lib/sqlite/prom.db'
+      - 'mysql://root:root@(mysql:3306)/'
     volumes:
       - './data/:/var/lib/sqlite/'
-    ports:
-      - '8081:8080'
+    expose:
+     - '8080'
     environment:
       - 'RUST_BACKTRACE=1'
     networks:
+      - local-link
       - planet-link
     logging:
       driver: "json-file"
       options:
         max-file: '4'
         max-size: '250m'
+
+  mysql:
+    container_name: 'prometheus_sql_adapter_mysql'
+    hostname: 'prometheus_sql_adapter_mysql'
+    image: mysql:8.0.20
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 'root'
+    volumes:
+      - './data/mysql:/var/lib/mysql/'
+    networks:
+      - local-link
+    logging:
+      driver: 'json-file'
+      options:
+        max-file: '4'
+        max-size: '250m'
+  mysql-mon:
+    container_name: 'prometheus_sql_adapter_mysql-mon'
+    hostname: 'prometheus_sql_adapter_mysql-mon'
+    image: prom/mysqld-exporter
+    restart: always
+    environment:
+      DATA_SOURCE_NAME: 'root:root@(mysql:3306)/'
+    expose:
+      - 9104
+    networks:
+      - local-link
+      - planet-link
+    depends_on:
+      - mysql
+    logging:
+      driver: 'json-file'
+      options:
+        max-file: '4'
+        max-size: '250m'
+
+#
+  local:
+    container_name: prometheus_sql_adapter
+    hostname: prometheus_sql_adapter
+    image: prometheus_sql_adapter-debug
+    build:
+      context: ./debug-image
+    restart: 'no'
+    entrypoint: '/target/prometheus_sql_adapter'
+    command:
+      - 'web'
+      - '--listen'
+      - '0.0.0.0:8080'
+      - '--db'
+      - 'mysql://root:root@mysql:3306/prometheus'
+    volumes:
+      - './target/debug:/target'
+    depends_on:
+      - mysql
+    expose:
+     - '8080'
+    environment:
+      - 'RUST_BACKTRACE=1'
+    networks:
+      - local-link
+      - planet-link
+    logging:
+      driver: "json-file"
+      options:
+        max-file: '4'
+        max-size: '250m'
+
+# networks
 networks:
+  local-link:
+    external: false
   planet-link:
-    external:
-      name: planet-link
+    external: true
