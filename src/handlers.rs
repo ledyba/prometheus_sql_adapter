@@ -57,6 +57,7 @@ pub async fn write(context: Arc<context::Context>, body: Bytes) -> Result<impl R
     error!("Failed to write to DB: {:?}", &err);
     return Ok(response_db_error(err));
   }
+  info!("OK");
   Ok(warp::reply::html("OK").into_response())
 }
 

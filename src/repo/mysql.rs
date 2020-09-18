@@ -73,7 +73,6 @@ create table if not exists samples(
       sqlx::query_as::<MySql, (u64,)>("insert into timeseries default values; select last_insert_id(`id`)")
         .fetch_one(&mut conn).await?.0
     };
-
     for ts in req.timeseries.iter() {
       for sample in ts.samples.iter() {
         sqlx::query::<MySql>(r"insert into samples (timeseries_id, timestamp, value) values (?, ?, ?)")
@@ -92,9 +91,7 @@ create table if not exists samples(
           .await?;
       }
     }
-    conn.commit().await?;
-
-    Ok(())
+    conn.commit().await
   }
 
   pub async fn read(&mut self, query: &Query) -> sqlx::Result<QueryResult> {
