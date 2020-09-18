@@ -9,17 +9,17 @@ build = 'build.rs'
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4.0"
-env_logger = "0.7.1"
+log = "0.4"
+env_logger = "0.7"
 tokio = { version = "0.2", features = ["full"] }
-warp = "0.2.3"
-clap = "2.33.1"
-cascara = "0.1.0"
-string-error = "0.1.0"
-snap = "1"
+warp = "0.2"
+clap = "2.33"
+cascara = "0.1"
+string-error = "0.1"
+snap = "1.0"
 protobuf = { version = "2", features = ["with-bytes"] }
-sqlx = { version = "0.3.5", default-features = false, features = ["runtime-tokio", "macros", "mysql", "sqlite", "chrono", "postgres"] }
+sqlx = { version = "0.4.0-beta.1", default-features = false, features = ["runtime-tokio", "macros", "mysql", "sqlite", "chrono", "postgres"] }
 rand = "0.7"
 
 [build-dependencies]
-protobuf-codegen-pure = "2.3"
+protobuf-codegen-pure = "2.17"
