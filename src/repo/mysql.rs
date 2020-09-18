@@ -68,7 +68,8 @@ create table if not exists samples(
         }
       }
     }
-    let mut conn = self.pool.begin().await?;
+    //let mut conn = self.pool.begin().await?;
+    let mut conn = self.pool.acquire().await?;
     let id: u64 = {
       sqlx::query::<MySql>(r"insert into timeseries () values ()")
         .execute(&mut conn).await?;
@@ -93,7 +94,8 @@ create table if not exists samples(
           .await?;
       }
     }
-    conn.commit().await
+    //conn.commit().await
+    Ok(())
   }
 
   pub async fn read(&mut self, query: &Query) -> sqlx::Result<QueryResult> {
