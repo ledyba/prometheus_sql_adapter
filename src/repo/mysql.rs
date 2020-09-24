@@ -58,42 +58,62 @@ create table if not exists samples(
   pub async fn write(&mut self, req: WriteRequest) -> sqlx::Result<()> {
     {
       let mut conn = self.pool.acquire().await?;
+      let mut places: Vec<&str> = vec![];
+      let mut words: Vec<&String> = vec![];
+      let mut sql = r"insert ignore into `literals` (`value`) values ".to_string();
       for ts in req.timeseries.iter() {
         for label in ts.labels.iter() {
-          sqlx::query::<MySql>(r"insert ignore into `literals` (`value`) values (?), (?)")
-            .bind(label.name.as_str())
-            .bind(label.value.as_str())
-            .execute(&mut conn)
-            .await?;
+          places.push("(?),(?)");
+          words.push(&label.name);
+          words.push(&label.value);
         }
       }
+      sql += places.join(", ").as_str();
+      let query = sqlx::query::<MySql>(sql.as_str());
+      words.into_iter().fold(query, |query, word| query.bind(word))
+        .execute(&mut conn)
+      .await?;
     }
     //let mut conn = self.pool.begin().await?;
     let mut conn = self.pool.acquire().await?;
-    let id: u64 = {
-      sqlx::query::<MySql>(r"insert into timeseries () values ()")
-        .execute(&mut conn).await?;
-      sqlx::query_as::<MySql, (u64,)>("select last_insert_id()")
-        .fetch_one(&mut conn).await?.0
-    };
+    let mut sample_sql = r"insert into samples (timeseries_id, timestamp, value) values ".to_string();
+    let mut sample_places:Vec<&str> = vec![];
+    let mut label_sql = r"insert into labels (timeseries_id, name, value) values ".to_string();
+    let mut label_places:Vec<&str> = vec![];
     for ts in req.timeseries.iter() {
-      for sample in ts.samples.iter() {
-        sqlx::query::<MySql>(r"insert into samples (timeseries_id, timestamp, value) values (?, ?, ?)")
-          .bind(id)
-          .bind(sample.timestamp)
-          .bind(sample.value)
-          .execute(&mut conn)
-          .await?;
+      for _ in ts.samples.iter() {
+        sample_places.push("(?, ?, ?)");
       }
-      for label in ts.labels.iter() {
-        sqlx::query::<MySql>(r"insert into labels (timeseries_id, name, value) values (?, (select id from literals where value = ?), (select id from literals where value = ?))")
-          .bind(id)
-          .bind(label.name.as_str())
-          .bind(label.value.as_str())
-          .execute(&mut conn)
-          .await?;
+      for _ in ts.labels.iter() {
+        label_places.push("(?, (select id from literals where value = ?), (select id from literals where value = ?))");
       }
     }
+    sample_sql += sample_places.join(", ").as_str();
+    label_sql += label_places.join(", ").as_str();
+    let mut sample_query = sqlx::query::<MySql>(sample_sql.as_str());
+    let mut label_query = sqlx::query::<MySql>(label_sql.as_str());
+    for ts in req.timeseries.iter() {
+      let id: u64 = {
+        sqlx::query::<MySql>(r"insert into timeseries () values ()")
+          .execute(&mut conn).await?;
+        sqlx::query_as::<MySql, (u64,)>("select last_insert_id()")
+          .fetch_one(&mut conn).await?.0
+      };
+      for sample in ts.samples.iter() {
+        sample_query = sample_query
+          .bind(id)
+          .bind(sample.timestamp)
+          .bind(sample.value);
+      }
+      for label in ts.labels.iter() {
+        label_query = label_query
+          .bind(id)
+          .bind(label.name.as_str())
+          .bind(label.value.as_str());
+      }
+    }
+    sample_query.execute(&mut conn).await?;
+    label_query.execute(&mut conn).await?;
     //conn.commit().await
     Ok(())
   }
