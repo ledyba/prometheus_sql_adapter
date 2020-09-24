@@ -30,8 +30,8 @@ create table if not exists `timeseries`(
     sqlx::query(r"
 create table if not exists `labels`(
   `timeseries_id` bigint unsigned not null,
-  `name` int not null,
-  `value` int not null,
+  `name` bigint unsigned not null,
+  `value` bigint unsigned not null,
   index (`timeseries_id`)
 ) ENGINE=InnoDB;").execute(&mut conn).await?;
 
