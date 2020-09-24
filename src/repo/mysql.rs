@@ -56,8 +56,8 @@ create table if not exists samples(
   }
 
   pub async fn write(&mut self, req: WriteRequest) -> sqlx::Result<()> {
+    let mut conn = self.pool.acquire().await?;
     {
-      let mut conn = self.pool.acquire().await?;
       let mut places: Vec<&str> = vec![];
       let mut words: Vec<&String> = vec![];
       let mut sql = r"insert ignore into `literals` (`value`) values ".to_string();
@@ -75,7 +75,6 @@ create table if not exists samples(
       .await?;
     }
     //let mut conn = self.pool.begin().await?;
-    let mut conn = self.pool.acquire().await?;
     let mut sample_sql = r"insert into samples (timeseries_id, timestamp, value) values ".to_string();
     let mut sample_places:Vec<&str> = vec![];
     let mut label_sql = r"insert into labels (timeseries_id, name, value) values ".to_string();
