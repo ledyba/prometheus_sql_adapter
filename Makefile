@@ -12,7 +12,7 @@ clean:
 
 .PHONY: musl-static
 musl-static:
-	CGO_ENABLED=1 CC=/usr/bin/musl-gcc go build --ldflags '-linkmode external -extldflags "-static"' \
+	CGO_ENABLED=1 go build --ldflags '-linkmode external -extldflags "-static"' \
 		-o prometheus_sql_adapter ./cmd/prometheus_sql_adapter
 
 .PHONY: test
