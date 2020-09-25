@@ -36,7 +36,6 @@ func Write(w http.ResponseWriter, r *http.Request) {
 	}
 	err = repo.Write(&req)
 	if err != nil {
-		log.Error("Failed to write to database", zap.Error(err))
 		renderError(w, r, err, nil)
 		return
 	}

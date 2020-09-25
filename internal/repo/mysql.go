@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"sort"
+
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
 )
@@ -13,6 +15,7 @@ func mysqlInit() error {
 		primary key (id)
 	) ENGINE=InnoDB;`)
 	if err != nil {
+		log.Info("Failed to initialize database", zap.String("driver", "mysql"), zap.Error(err))
 		return err
 	}
 
@@ -24,6 +27,7 @@ func mysqlInit() error {
 		index (timeseries_id)
 	) ENGINE=InnoDB;`)
 	if err != nil {
+		log.Info("Failed to initialize database", zap.String("driver", "mysql"), zap.Error(err))
 		return err
 	}
 
@@ -35,6 +39,7 @@ func mysqlInit() error {
 		index (value)
 	) ENGINE=InnoDB;`)
 	if err != nil {
+		log.Info("Failed to initialize database", zap.String("driver", "mysql"), zap.Error(err))
 		return err
 	}
 
@@ -47,12 +52,14 @@ func mysqlInit() error {
 		index (timestamp)
 	) ENGINE=InnoDB;`)
 	if err != nil {
+		log.Info("Failed to initialize database", zap.String("driver", "mysql"), zap.Error(err))
 		return err
 	}
 
 	if err == nil {
-		log.Info("Database Initialized", zap.String("driver", "sqlite"))
+		log.Info("Database Initialized", zap.String("driver", "mysql"))
 	}
+
 	return err
 }
 
@@ -60,16 +67,18 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 	var err error
 	{ // insert labels
 		labelSQL := ""
-		labelValue := make([]interface{}, 0)
+		labelValue := make([]string, 0)
 		for _, timeseries := range req.Timeseries {
 			for _, label := range timeseries.Labels {
 				labelSQL += ",(?),(?)"
 				labelValue = append(labelValue, label.Name, label.Value)
 			}
 		}
+		sort.Strings(labelValue)
 		labelSQL = "insert ignore into `literals` (`value`) values " + labelSQL[1:]
 		_, err = db.Exec(labelSQL, labelValue...)
 		if err != nil {
+			log.Error("Failed to append literals", zap.Error(err))
 			return err
 		}
 	}
@@ -80,10 +89,12 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 	for _, ts := range req.Timeseries {
 		_, err = db.Exec("insert into timeseries () values ()")
 		if err != nil {
+			log.Error("Failed to create new timeseries", zap.Error(err))
 			return err
 		}
 		row := db.QueryRow(`select last_insert_id()`)
 		if row.Err() != nil {
+			log.Error("Failed to select last_insert_id()", zap.Error(row.Err()))
 			return row.Err()
 		}
 		var id uint64
@@ -102,11 +113,13 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 	labelSQL = `insert into labels (timeseries_id, name, value) values ` + labelSQL[1:]
 	_, err = db.Exec(labelSQL, labelValue...)
 	if err != nil {
+		log.Error("Failed to write labels to database", zap.Error(err))
 		return err
 	}
 	sampleSQL = `insert into samples (timeseries_id, timestamp, value) values ` + sampleSQL[1:]
 	_, err = db.Exec(sampleSQL, sampleValue...)
 	if err != nil {
+		log.Error("Failed to write samples to database", zap.Error(err))
 		return err
 	}
 	return nil

@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"sort"
+
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
 )
@@ -35,7 +37,9 @@ create index if not exists samples_timeseries_index on samples(timeseries_id);
 -- literals
 create index if not exists literals_value_index on literals(value);
 `)
-	if err == nil {
+	if err != nil {
+		log.Info("Failed to initialize database", zap.String("driver", "sqlite"), zap.Error(err))
+	} else {
 		log.Info("Database Initialized", zap.String("driver", "sqlite"))
 	}
 	return err
@@ -45,16 +49,18 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 	var err error
 	{ // insert labels
 		labelSQL := ""
-		labelValue := make([]interface{}, 0)
+		labelValue := make([]string, 0)
 		for _, timeseries := range req.Timeseries {
 			for _, label := range timeseries.Labels {
 				labelSQL += ",(?),(?)"
 				labelValue = append(labelValue, label.Name, label.Value)
 			}
 		}
+		sort.Strings(labelValue)
 		labelSQL = `insert or ignore into literals (value) values ` + labelSQL[1:]
 		_, err = db.Exec(labelSQL, labelValue...)
 		if err != nil {
+			log.Error("Failed to append literals", zap.Error(err))
 			return err
 		}
 	}
@@ -65,10 +71,12 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 	for _, ts := range req.Timeseries {
 		_, err = db.Exec(`insert into timeseries default values`)
 		if err != nil {
+			log.Error("Failed to create new timeseries", zap.Error(err))
 			return err
 		}
 		row := db.QueryRow(`select id from timeseries where rowid = last_insert_rowid()`)
 		if row.Err() != nil {
+			log.Error("Failed to select id from timeseries where rowid = last_insert_rowid()", zap.Error(row.Err()))
 			return row.Err()
 		}
 		var id uint64
@@ -87,11 +95,13 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 	labelSQL = `insert into labels (timeseries_id, name, value) values ` + labelSQL[1:]
 	_, err = db.Exec(labelSQL, labelValue...)
 	if err != nil {
+		log.Error("Failed to write labels to database", zap.Error(err))
 		return err
 	}
 	sampleSQL = `insert into samples (timeseries_id, timestamp, value) values ` + sampleSQL[1:]
 	_, err = db.Exec(sampleSQL, sampleValue...)
 	if err != nil {
+		log.Error("Failed to write samples to database", zap.Error(err))
 		return err
 	}
 	return nil
