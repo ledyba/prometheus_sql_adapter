@@ -81,12 +81,12 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 			sampleValue = append(sampleValue, id, sample.Timestamp, sample.Value)
 		}
 	}
-	sampleSQL = `insert into samples (timeseries_id, timestamp, value) ` + sampleSQL[1:]
+	sampleSQL = `insert into samples (timeseries_id, timestamp, value) values ` + sampleSQL[1:]
 	_, err = db.Exec(sampleSQL, sampleValue...)
 	if err != nil {
 		return err
 	}
-	labelSQL = `insert into labels (timeseries_id, name, value) ` + labelSQL[1:]
+	labelSQL = `insert into labels (timeseries_id, name, value) values ` + labelSQL[1:]
 	_, err = db.Exec(labelSQL, labelValue...)
 	if err != nil {
 		return err
