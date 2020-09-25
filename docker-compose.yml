@@ -12,14 +12,11 @@ services:
       - '--listen'
       - '0.0.0.0:8080'
       - '--db'
-      - 'mysql://root:root@mysql:3306/db'
+      - 'sqlite://file::memory:?cache=shared'
     volumes:
       - './data/:/var/lib/sqlite/'
     expose:
      - '8080'
-    environment:
-      - 'RUST_BACKTRACE=full'
-      - 'RUST_LOG=error'
     networks:
       - local-link
       - planet-link
