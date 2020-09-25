@@ -12,7 +12,7 @@ services:
       - '--listen'
       - '0.0.0.0:8080'
       - '--db'
-      - 'sqlite://file::memory:?cache=shared'
+      - 'sqlite://file:/var/lib/sqlite/prometheus.db?cache=shared&mode=rwc'
     volumes:
       - './data/:/var/lib/sqlite/'
     expose:
