@@ -9,8 +9,10 @@ services:
       context: ./
     restart: always
     command:
-      - '--listen=0.0.0.0:8080'
-      - '--db=sqlite://file:/var/lib/sqlite/prometheus.db?cache=shared&mode=rwc'
+      - '--listen'
+      - '0.0.0.0:8080'
+      - '--db'
+      - 'sqlite://file:/var/lib/sqlite/prometheus.db?cache=shared&mode=rwc'
     volumes:
       - './data/sqlite/:/var/lib/sqlite/'
     expose:

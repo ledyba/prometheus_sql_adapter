@@ -16,6 +16,7 @@ var db = flag.String("db", "sqlite://file::memory:?cache=shared", "DB to connect
 var log *zap.Logger
 
 func main() {
+	flag.Parse()
 	var err error
 	log, _ = zap.NewProduction()
 	defer func() {
