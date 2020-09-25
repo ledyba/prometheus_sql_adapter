@@ -5,5 +5,5 @@ cd "${PROJ_PATH}/.." || exit
 
 docker-compose up -d mysql
 sleep 5
-docker-compose exec mysql bash -c "mysql"
+echo "create database db"
 docker-compose down
