@@ -22,4 +22,10 @@ jobs:
           path: artifacts/prometheus_sql_adapter
       - name: Show ldd
         shell: bash
-        run: ldd artifacts/prometheus_sql_adapter || true
+        run: |
+        if ldd artifacts/prometheus_sql_adapter; then
+          echo "Dynamically linked!"
+          false
+        else
+          echo "Statically linked!"
+        fi
