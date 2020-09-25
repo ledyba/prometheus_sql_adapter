@@ -92,7 +92,6 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 		return err
 	}
 	sampleSQL = `insert into samples (timeseries_id, timestamp, value) values ` + sampleSQL[1:]
-	log.Info(fmt.Sprintf("%v", sampleValue))
 	_, err = db.Exec(sampleSQL, sampleValue...)
 	if err != nil {
 		return err
