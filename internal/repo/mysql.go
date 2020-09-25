@@ -66,23 +66,37 @@ func mysqlInit() error {
 
 func mysqlWrite(req *prompb.WriteRequest) error {
 	var err error
+	var result sql.Result
+	numLiteralsTotal := 0
+	numLiteralsInserted := int64(0)
 	for _, timeseries := range req.Timeseries {
 		for _, label := range timeseries.Labels {
 			for _, literal := range []string{label.Name, label.Value} {
-				_, err = db.Exec("insert ignore into `literals` (`value`) values (?)", literal)
+				result, err = db.Exec("insert ignore into `literals` (`value`) values (?)", literal)
 				if err != nil {
 					log.Error("Failed to append literals", zap.Error(err))
 					return err
 				}
+				var affected int64
+				affected, err = result.RowsAffected()
+				if err != nil {
+					log.Error("Failed to read rows affected", zap.Error(err))
+					return err
+				}
+				numLiteralsInserted += affected
+				numLiteralsTotal++
 			}
 		}
 	}
+	numLabelsTotal := 0
+	numLabelsInserted := int64(0)
 	labelSQL := ""
 	labelValue := make([]interface{}, 0)
+	numSamplesTotal := 0
+	numSamplesInserted := int64(0)
 	sampleSQL := ""
 	sampleValue := make([]interface{}, 0)
 	for _, ts := range req.Timeseries {
-		var result sql.Result
 		var id int64
 		result, err = db.Exec("insert into timeseries () values ()")
 		if err != nil {
@@ -97,16 +111,23 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 		for _, label := range ts.Labels {
 			labelSQL += `,(?, (select id from literals where value = ?), (select id from literals where value = ?))`
 			labelValue = append(labelValue, id, label.Name, label.Value)
+			numLabelsTotal++
 		}
 		for _, sample := range ts.Samples {
 			sampleSQL += `,(?,?,?)`
 			sampleValue = append(sampleValue, id, sample.Timestamp, sample.Value)
+			numSamplesTotal++
 		}
 	}
 	labelSQL = `insert into labels (timeseries_id, name, value) values ` + labelSQL[1:]
-	_, err = db.Exec(labelSQL, labelValue...)
+	result, err = db.Exec(labelSQL, labelValue...)
 	if err != nil {
 		log.Error("Failed to write labels to database", zap.Error(err))
+		return err
+	}
+	numLabelsInserted, err = result.RowsAffected()
+	if err != nil {
+		log.Error("Failed to read rows affected", zap.Error(err))
 		return err
 	}
 	sampleSQL = `insert into samples (timeseries_id, timestamp, value) values ` + sampleSQL[1:]
@@ -115,6 +136,19 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 		log.Error("Failed to write samples to database", zap.Error(err))
 		return err
 	}
-	log.Info("OK")
+	numSamplesInserted, err = result.RowsAffected()
+	if err != nil {
+		log.Error("Failed to read rows affected", zap.Error(err))
+		return err
+	}
+	log.Info("Write Done",
+		zap.String("driver", "mysql"),
+		zap.Int("timeseries", len(req.Timeseries)),
+		zap.Int("literals-total", numLiteralsTotal),
+		zap.Int64("literals-inserted", numLiteralsInserted),
+		zap.Int("labels-total", numLabelsTotal),
+		zap.Int64("labels-inserted", numLabelsInserted),
+		zap.Int("samples-total", numSamplesTotal),
+		zap.Int64("samples-inserted", numSamplesInserted))
 	return nil
 }
