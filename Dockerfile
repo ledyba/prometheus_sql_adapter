@@ -3,7 +3,7 @@ FROM golang:1.15-alpine as builder
 WORKDIR /go/src/github.com/ledyba/prometheus_sql_adapter
 COPY . .
 
-RUN apk add git gcc g++ musl-dev bash make sqlite-dev mysql-client
+RUN apk add git gcc g++ musl-dev bash make sqlite-dev
 
 ENV GOOS=linux
 ENV GOARCH=amd64
