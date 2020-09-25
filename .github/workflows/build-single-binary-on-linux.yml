@@ -23,9 +23,9 @@ jobs:
       - name: Show ldd
         shell: bash
         run: |
-        if ldd artifacts/prometheus_sql_adapter; then
-          echo "Dynamically linked!"
-          false
-        else
-          echo "Statically linked!"
-        fi
+          if ldd artifacts/prometheus_sql_adapter; then
+            echo "Dynamically linked!"
+            false
+          else
+            echo "Statically linked!"
+          fi
