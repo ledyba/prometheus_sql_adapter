@@ -12,8 +12,8 @@ services:
       - '--listen'
       - '0.0.0.0:8080'
       - '--db'
-#     - 'mysql://root:root@tcp(mysql:3306)/db'
-      - 'sqlite://file:/var/lib/sqlite/prometheus.db?cache=shared&mode=rwc'
+      - 'mysql://root:root@tcp(mysql:3306)/db'
+#      - 'sqlite://file:/var/lib/sqlite/prometheus.db?cache=shared&mode=rwc'
     volumes:
       - './data/sqlite/:/var/lib/sqlite/'
     depends_on:

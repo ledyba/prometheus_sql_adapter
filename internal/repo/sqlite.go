@@ -1,14 +1,12 @@
 package repo
 
 import (
-	"sort"
-	"strings"
-
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
 )
 
 func sqliteInit() error {
+	db.SetMaxOpenConns(16)
 	_, err := db.Exec(`
 create table if not exists timeseries(
   id integer primary key autoincrement
@@ -48,24 +46,15 @@ create index if not exists literals_value_index on literals(value);
 
 func sqliteWrite(req *prompb.WriteRequest) error {
 	var err error
-	{ // insert labels
-		labelSQL := ""
-		labelValue := make([]interface{}, 0)
-		for _, timeseries := range req.Timeseries {
-			for _, label := range timeseries.Labels {
-				labelSQL += ",(?),(?)"
-				labelValue = append(labelValue, label.Name, label.Value)
+	for _, timeseries := range req.Timeseries {
+		for _, label := range timeseries.Labels {
+			for _, literal := range []string{label.Name, label.Value} {
+				_, err = db.Exec("insert or ignore into literals (value) values (?)", literal)
+				if err != nil {
+					log.Error("Failed to append literals", zap.Error(err))
+					return err
+				}
 			}
-		}
-		sort.Slice(labelValue, func(i,j int) bool {
-			return strings.Compare(labelValue[i].(string), labelValue[j].(string)) < 0
-		})
-
-		labelSQL = `insert or ignore into literals (value) values ` + labelSQL[1:]
-		_, err = db.Exec(labelSQL, labelValue...)
-		if err != nil {
-			log.Error("Failed to append literals", zap.Error(err))
-			return err
 		}
 	}
 	labelSQL := ""
@@ -110,3 +99,4 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 	}
 	return nil
 }
+
