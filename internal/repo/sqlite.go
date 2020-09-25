@@ -8,7 +8,7 @@ import (
 func sqliteInit() error {
 	_, err := db.Exec(`
 create table if not exists timeseries(
-  id integer primary key autoincrement not null
+  id integer primary key autoincrement
 );
 create table if not exists labels(
   timeseries_id integer not null,
@@ -16,7 +16,7 @@ create table if not exists labels(
   value integer not null
 );
 create table if not exists literals(
-  id integer primary key autoincrement not null,
+  id integer primary key autoincrement,
   value text unique not null
 );
 create table if not exists samples(
