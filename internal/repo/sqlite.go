@@ -1,8 +1,6 @@
 package repo
 
 import (
-	"fmt"
-
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
 )
