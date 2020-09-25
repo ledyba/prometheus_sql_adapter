@@ -9,18 +9,25 @@ Prometheus remote storage adapter, which stores timeseries data into RDBMS.
 
 ## Building and running
 
-### with Cargo
+### with Makefile
+
+You need to install golang for building.
 
 ```bash
-cargo build --release
+make
 ```
 
 then run,
 
 ```bash
-target/release/prometheus_sql_adapter web \
-  --listen '0.0.0.0:8080' \
-  --db '....' # TODO
+./prometheus_sql_adapter web \
+    --listen '0.0.0.0:8080' \
+ # to use sqlite,
+    --db 'sqlite://file:/var/lib/sqlite/prometheus.db?cache=shared&mode=rwc'
+#   --db 'sqlite://file::memory:?cache=shared' # use in-memory db(for debugging)
+# to use mysql,
+#   --db 'mysql://root:root@tcp(mysql-server-addr:3306)/db'
+
 ```
 
 ### with Docker
@@ -45,8 +52,10 @@ services:
       - '0.0.0.0:8080'
       - '--db'
  # to use sqlite,
-      - 'sqlite:///var/lib/sqlite/prom.db'
-#     - 'sqlite:' # use in-memory db(for debugging)
+      - 'sqlite://file:/var/lib/sqlite/prometheus.db?cache=shared&mode=rwc'
+#     - 'sqlite://file::memory:?cache=shared' # use in-memory db(for debugging)
+# to use mysql,
+#     - 'mysql://root:root@tcp(mysql-server-addr:3306)/db'
 ```
 
 then,
