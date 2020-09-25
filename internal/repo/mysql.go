@@ -119,6 +119,8 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 			numSamplesTotal++
 		}
 	}
+
+	// Label batch insert
 	labelSQL = `insert into labels (timeseries_id, name, value) values ` + labelSQL[1:]
 	result, err = db.Exec(labelSQL, labelValue...)
 	if err != nil {
@@ -130,6 +132,8 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 		log.Error("Failed to read rows affected", zap.Error(err))
 		return err
 	}
+
+	// Sample batch insert
 	sampleSQL = `insert into samples (timeseries_id, timestamp, value) values ` + sampleSQL[1:]
 	_, err = db.Exec(sampleSQL, sampleValue...)
 	if err != nil {

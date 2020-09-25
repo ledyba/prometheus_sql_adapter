@@ -104,6 +104,7 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 			numSamplesTotal++
 		}
 	}
+
 	// Label batch insert
 	labelSQL = `insert into labels (timeseries_id, name, value) values ` + labelSQL[1:]
 	_, err = db.Exec(labelSQL, labelValue...)
