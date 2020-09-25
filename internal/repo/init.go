@@ -52,8 +52,7 @@ func Init() error {
 	case kSqlite:
 		return sqliteInit()
 	case kMySQL:
-		//TODO
-		return nil
+		return mysqlInit()
 	default:
 		return ErrUnknownDriver
 	}

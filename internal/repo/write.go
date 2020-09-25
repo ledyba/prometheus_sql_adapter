@@ -9,8 +9,7 @@ func Write(req *prompb.WriteRequest) error {
 	case kSqlite:
 		return sqliteWrite(req)
 	case kMySQL:
-		//TODO
-		return nil
+		return mysqlWrite(req)
 	default:
 		return ErrUnknownDriver
 	}
