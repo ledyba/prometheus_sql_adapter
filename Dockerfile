@@ -5,6 +5,8 @@ COPY . .
 
 RUN apk add git gcc g++ musl-dev bash make sqlite-dev mysql-client
 
+ENV GOOS=linux
+ENV GOARCH=amd64
 RUN make clean && make
 
 FROM alpine:3.12
