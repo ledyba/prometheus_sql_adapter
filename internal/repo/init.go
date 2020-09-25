@@ -28,18 +28,21 @@ var driver DriverType = kInvalid
 func Open(url string) error {
 	var err error
 	log, _ = zap.NewProduction()
+	var driverType zap.Field
 	switch {
 	case strings.HasPrefix(url, "sqlite://"):
 		db, err = sql.Open("sqlite3", url[9:])
 		driver = kSqlite
+		driverType = zap.String("driver", "sqlite")
 	case strings.HasPrefix(url, "mysql://"):
 		db, err = sql.Open("mysql", url[8:])
 		driver = kMySQL
+		driverType = zap.String("driver", "mysql")
 	default:
 		return ErrUnknownDriver
 	}
 	if err == nil {
-		log.Info("Database Opened", zap.String("driver", "mysql"), zap.String("url", url[8:]))
+		log.Info("Database Opened", driverType, zap.String("url", url[8:]))
 	} else {
 		driver = kInvalid
 	}

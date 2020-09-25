@@ -11,7 +11,7 @@ import (
 )
 
 var listen = flag.String("listen", ":8080", "Listen")
-var db = flag.String("db", "sqlite://file::memory:?cache=shared", "Listen")
+var db = flag.String("db", "sqlite://file::memory:?cache=shared", "DB to connect")
 
 var log *zap.Logger
 
