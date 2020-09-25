@@ -1,4 +1,4 @@
-target/
+prometheus_sql_adapter
 docker-compose.yml
 Dockerfile
 README.md
@@ -7,3 +7,4 @@ LICENSE
 .git/
 .github/
 .gitignore
+.vscode/
