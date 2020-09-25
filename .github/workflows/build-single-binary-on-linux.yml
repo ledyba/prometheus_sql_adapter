@@ -20,3 +20,6 @@ jobs:
         with:
           name: prometheus_sql_adapter
           path: artifacts/prometheus_sql_adapter
+      - name: Show ldd
+        shell: bash
+        run: ldd artifacts/prometheus_sql_adapter
