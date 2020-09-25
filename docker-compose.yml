@@ -50,6 +50,7 @@ services:
       options:
         max-file: '4'
         max-size: '250m'
+
   mysql-mon:
     container_name: 'prometheus_sql_adapter_mysql-mon'
     hostname: 'prometheus_sql_adapter_mysql-mon'
@@ -66,38 +67,6 @@ services:
       - mysql
     logging:
       driver: 'json-file'
-      options:
-        max-file: '4'
-        max-size: '250m'
-
-#
-  local:
-    container_name: prometheus_sql_adapter
-    hostname: prometheus_sql_adapter
-    image: prometheus_sql_adapter-debug
-    build:
-      context: ./debug-image
-    restart: 'no'
-    entrypoint: '/target/prometheus_sql_adapter'
-    command:
-      - '--listen'
-      - '0.0.0.0:8080'
-      - '--db'
-      - 'mysql://root:root@mysql:3306/db'
-    volumes:
-      - './target/debug:/target'
-    depends_on:
-      - mysql
-    expose:
-     - '8080'
-    environment:
-      - 'RUST_BACKTRACE=full'
-      - 'RUST_LOG=error'
-    networks:
-      - local-link
-      - planet-link
-    logging:
-      driver: "json-file"
       options:
         max-file: '4'
         max-size: '250m'
