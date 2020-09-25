@@ -1,4 +1,4 @@
-FROM golang:1.14-alpine as build
+FROM golang:1.15-alpine as build
 
 WORKDIR /go/src/github.com/ledyba/prometheus_sql_adapter
 COPY --chown=rust:rust . .
