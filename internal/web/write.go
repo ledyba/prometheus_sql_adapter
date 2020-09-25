@@ -8,17 +8,20 @@ import (
 	"github.com/golang/snappy"
 	"github.com/ledyba/prometheus_sql_adapter/internal/repo"
 	"github.com/prometheus/prometheus/prompb"
+	"go.uber.org/zap"
 )
 
 func Write(w http.ResponseWriter, r *http.Request) {
 	in, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		log.Error("Failed to read body", zap.Error(err))
 		w.WriteHeader(400)
 		_, _ = w.Write([]byte(fmt.Sprintf("Failed to read body: %v", err)))
 		return
 	}
 	out, err := snappy.Decode(nil, in)
 	if err != nil {
+		log.Error("Failed to decode body", zap.Error(err))
 		w.WriteHeader(400)
 		_, _ = w.Write([]byte(fmt.Sprintf("Failed to decode body: %v", err)))
 		return
@@ -26,12 +29,14 @@ func Write(w http.ResponseWriter, r *http.Request) {
 	req := prompb.WriteRequest{}
 	err = req.Unmarshal(out)
 	if err != nil {
+		log.Error("Failed to parse request", zap.Error(err))
 		w.WriteHeader(400)
 		_, _ = w.Write([]byte(fmt.Sprintf("Failed to parse request: %v", err)))
 		return
 	}
 	err = repo.Write(&req)
 	if err != nil {
+		log.Error("Failed to write to database", zap.Error(err))
 		renderError(w, r, err, nil)
 		return
 	}
