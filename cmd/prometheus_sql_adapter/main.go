@@ -7,6 +7,8 @@ import (
 	"github.com/ledyba/prometheus_sql_adapter/internal/repo"
 	"github.com/ledyba/prometheus_sql_adapter/internal/web"
 
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
 )
 

@@ -1,7 +1,9 @@
 package repo
 
 import (
+	"database/sql"
 	"sort"
+	"strings"
 
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
@@ -67,14 +69,16 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 	var err error
 	{ // insert labels
 		labelSQL := ""
-		labelValue := make([]string, 0)
+		labelValue := make([]interface{}, 0)
 		for _, timeseries := range req.Timeseries {
 			for _, label := range timeseries.Labels {
 				labelSQL += ",(?),(?)"
 				labelValue = append(labelValue, label.Name, label.Value)
 			}
 		}
-		sort.Strings(labelValue)
+		sort.Slice(labelValue, func(i,j int) bool {
+			return strings.Compare(labelValue[i].(string), labelValue[j].(string)) < 0
+		})
 		labelSQL = "insert ignore into `literals` (`value`) values " + labelSQL[1:]
 		_, err = db.Exec(labelSQL, labelValue...)
 		if err != nil {
@@ -87,18 +91,16 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 	sampleSQL := ""
 	sampleValue := make([]interface{}, 0)
 	for _, ts := range req.Timeseries {
-		_, err = db.Exec("insert into timeseries () values ()")
+		var result sql.Result
+		var id int64
+		result, err = db.Exec("insert into timeseries () values ()")
 		if err != nil {
 			log.Error("Failed to create new timeseries", zap.Error(err))
 			return err
 		}
-		row := db.QueryRow(`select last_insert_id()`)
-		if row.Err() != nil {
-			log.Error("Failed to select last_insert_id()", zap.Error(row.Err()))
-			return row.Err()
-		}
-		var id uint64
-		if err = row.Scan(&id); err != nil {
+		id, err  = result.LastInsertId()
+		if err != nil {
+			log.Error("Failed to select last_insert_id()", zap.Error(err))
 			return err
 		}
 		for _, label := range ts.Labels {

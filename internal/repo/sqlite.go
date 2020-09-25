@@ -2,6 +2,7 @@ package repo
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
@@ -49,14 +50,17 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 	var err error
 	{ // insert labels
 		labelSQL := ""
-		labelValue := make([]string, 0)
+		labelValue := make([]interface{}, 0)
 		for _, timeseries := range req.Timeseries {
 			for _, label := range timeseries.Labels {
 				labelSQL += ",(?),(?)"
 				labelValue = append(labelValue, label.Name, label.Value)
 			}
 		}
-		sort.Strings(labelValue)
+		sort.Slice(labelValue, func(i,j int) bool {
+			return strings.Compare(labelValue[i].(string), labelValue[j].(string)) < 0
+		})
+
 		labelSQL = `insert or ignore into literals (value) values ` + labelSQL[1:]
 		_, err = db.Exec(labelSQL, labelValue...)
 		if err != nil {
