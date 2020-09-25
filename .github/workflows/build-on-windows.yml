@@ -23,3 +23,8 @@ jobs:
         run: make
       - name: Run tests
         run: make test
+      - name: Upload result
+        uses: actions/upload-artifact@v2
+        with:
+          name: prometheus_sql_adapter
+          path: prometheus_sql_adapter
