@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine as build
+FROM golang:1.15-alpine as builder
 
 WORKDIR /go/src/github.com/ledyba/prometheus_sql_adapter
 COPY . .

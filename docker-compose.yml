@@ -5,7 +5,6 @@ services:
   prometheus_sql_adapter:
     container_name: prometheus_sql_adapter
     hostname: prometheus_sql_adapter
-    image: prometheus_sql_adapter
     build:
       context: ./
     restart: always
