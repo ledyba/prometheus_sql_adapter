@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"fmt"
+
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
 )
@@ -63,7 +65,11 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 	sampleSQL := ""
 	sampleValue := make([]interface{}, 0)
 	for _, ts := range req.Timeseries {
-		row := db.QueryRow(`insert into timeseries default values; select last_insert_rowid()`)
+		_, err = db.Exec(`insert into timeseries default values`)
+		if err != nil {
+			return err
+		}
+		row := db.QueryRow(`select id from timeseries where rowid = last_insert_rowid()`)
 		if row.Err() != nil {
 			return row.Err()
 		}
@@ -86,6 +92,7 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 		return err
 	}
 	sampleSQL = `insert into samples (timeseries_id, timestamp, value) values ` + sampleSQL[1:]
+	log.Info(fmt.Sprintf("%v", sampleValue))
 	_, err = db.Exec(sampleSQL, sampleValue...)
 	if err != nil {
 		return err
