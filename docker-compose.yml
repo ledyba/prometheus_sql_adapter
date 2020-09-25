@@ -14,7 +14,7 @@ services:
       - '--db'
       - 'sqlite://file:/var/lib/sqlite/prometheus.db?cache=shared&mode=rwc'
     volumes:
-      - './data/:/var/lib/sqlite/'
+      - './data/sqlite/:/var/lib/sqlite/'
     expose:
      - '8080'
     networks:

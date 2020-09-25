@@ -1,4 +1,5 @@
 /prometheus_sql_adapter
+/data/
 
 # Created by https://www.toptal.com/developers/gitignore/api/go,intellij,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,intellij,visualstudiocode
