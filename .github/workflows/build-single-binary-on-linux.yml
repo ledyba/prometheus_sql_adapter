@@ -22,4 +22,4 @@ jobs:
           path: artifacts/prometheus_sql_adapter
       - name: Show ldd
         shell: bash
-        run: ldd artifacts/prometheus_sql_adapter
+        run: ldd artifacts/prometheus_sql_adapter || true
