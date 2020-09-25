@@ -20,6 +20,3 @@ jobs:
         with:
           name: prometheus_sql_adapter
           path: artifacts/prometheus_sql_adapter
-      - name: Inspect disk usage
-        shell: bash
-        run: du -sh .
