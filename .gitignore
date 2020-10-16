@@ -1,5 +1,6 @@
 /prometheus_sql_adapter
 /data/
+/cmd/prometheus_sql_adapter/__debug_bin
 
 # Created by https://www.toptal.com/developers/gitignore/api/go,intellij,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,intellij,visualstudiocode

@@ -3,4 +3,6 @@ image:
 
 tasks:
   - init: go get && go build ./... && go test ./... && make
-    command: go run
+    command: echo "Golang OK!"
+  - init: echo "create database prom;" | mysql > /dev/null 2>&1
+    command: echo "MySQL OK!"
