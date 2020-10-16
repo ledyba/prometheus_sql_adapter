@@ -18,3 +18,7 @@ musl-static:
 .PHONY: test
 test:
 	go test ./...
+
+.PHONY: benchmark
+benchmark:
+	helper/avalanche --remote-url=http://localhost:8080/write
