@@ -2,7 +2,10 @@ image:
   file: .gitpod.Dockerfile
 
 tasks:
-  - init: go get && go build ./... && go test ./... && make
-    command: echo "Golang OK!"
-  - init: echo "create database prom;" | mysql > /dev/null 2>&1
-    command: echo "MySQL OK!"
+  - init: |
+      go get ./... && \
+      go build ./cmd/prometheus_sql_adapter && \
+      go test ./... && \
+      make && \
+      (echo "create database prom;" | mysql > /dev/null 2>&1)
+    command: echo "OK!"
