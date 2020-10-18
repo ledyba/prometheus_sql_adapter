@@ -19,6 +19,8 @@ func newSqlite(db *sql.DB) Driver {
 }
 
 func (d *sqliteDriver) Init() error {
+	log := zap.L()
+
 	db := d.db
 	db.SetMaxOpenConns(16)
 	_, err := db.Exec(`
@@ -59,6 +61,7 @@ create index if not exists literals_value_index on literals(value);
 }
 
 func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
+	log := zap.L()
 	var err error
 	var result sql.Result
 	numLiteralsTotal := 0

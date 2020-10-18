@@ -14,7 +14,6 @@ import (
 var ErrUnknownDriver = errors.New("unknown driver")
 
 var db *sql.DB
-var log *zap.Logger
 var driver Driver
 
 // Driver abstract underlying database.
@@ -27,6 +26,7 @@ type Driver interface {
 
 // Open database
 func Open(url string) error {
+	log := zap.L()
 	var err error
 	log, _ = zap.NewProduction()
 	switch {
@@ -76,6 +76,5 @@ func Write(req *prompb.WriteRequest) error {
 // Close all resources
 func Close() {
 	driver.Close()
-	_ = log.Sync()
 	_ = db.Close()
 }

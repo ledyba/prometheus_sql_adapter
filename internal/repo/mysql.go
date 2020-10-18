@@ -19,6 +19,7 @@ func newMysql(db *sql.DB) Driver {
 }
 
 func (d *mysqlDriver) Init() error {
+	log := zap.L()
 	db.SetMaxOpenConns(16)
 	var err error
 	_, err = db.Exec(`
@@ -76,6 +77,7 @@ func (d *mysqlDriver) Init() error {
 }
 
 func (d *mysqlDriver) Write(req *prompb.WriteRequest) error {
+	log := zap.L()
 	var err error
 	var result sql.Result
 	numLiteralsTotal := 0

@@ -8,6 +8,7 @@ require (
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/golang/snappy v0.0.2
 	github.com/grpc-ecosystem/grpc-gateway v1.15.2 // indirect
+	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-sqlite3 v1.14.4
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	go.uber.org/multierr v1.6.0 // indirect

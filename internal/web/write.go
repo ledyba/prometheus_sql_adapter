@@ -34,6 +34,7 @@ func Write(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf("Failed to parse request: %v", err)))
 		return
 	}
+	log.Info("Inserting metrics", zap.Int("num of time series", len(req.Timeseries)))
 	err = repo.Write(&req)
 	if err != nil {
 		renderError(w, r, err, nil)
