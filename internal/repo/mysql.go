@@ -2,12 +2,23 @@ package repo
 
 import (
 	"database/sql"
+	"io"
 
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
 )
 
-func mysqlInit() error {
+type mysqlDriver struct {
+	db *sql.DB
+}
+
+func newMysql(db *sql.DB) Driver {
+	return &mysqlDriver{
+		db: db,
+	}
+}
+
+func (d *mysqlDriver) Init() error {
 	db.SetMaxOpenConns(16)
 	var err error
 	_, err = db.Exec(`
@@ -64,7 +75,7 @@ func mysqlInit() error {
 	return err
 }
 
-func mysqlWrite(req *prompb.WriteRequest) error {
+func (d *mysqlDriver) Write(req *prompb.WriteRequest) error {
 	var err error
 	var result sql.Result
 	numLiteralsTotal := 0
@@ -155,4 +166,12 @@ func mysqlWrite(req *prompb.WriteRequest) error {
 		zap.Int("samples-total", numSamplesTotal),
 		zap.Int64("samples-inserted", numSamplesInserted))
 	return nil
+}
+
+func (d *mysqlDriver) Read(req *prompb.ReadRequest, w io.Writer) error {
+	return nil
+}
+
+func (d *mysqlDriver) Close() {
+
 }

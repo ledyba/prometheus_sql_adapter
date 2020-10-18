@@ -8,4 +8,3 @@ tasks:
       go test ./... && \
       make && \
       (echo "create database prom;" | mysql > /dev/null 2>&1)
-    command: echo "OK!"

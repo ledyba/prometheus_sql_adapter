@@ -2,12 +2,24 @@ package repo
 
 import (
 	"database/sql"
+	"io"
 
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
 )
 
-func sqliteInit() error {
+type sqliteDriver struct {
+	db *sql.DB
+}
+
+func newSqlite(db *sql.DB) Driver {
+	return &sqliteDriver{
+		db: db,
+	}
+}
+
+func (d *sqliteDriver) Init() error {
+	db := d.db
 	db.SetMaxOpenConns(16)
 	_, err := db.Exec(`
 create table if not exists timeseries(
@@ -46,7 +58,7 @@ create index if not exists literals_value_index on literals(value);
 	return err
 }
 
-func sqliteWrite(req *prompb.WriteRequest) error {
+func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
 	var err error
 	var result sql.Result
 	numLiteralsTotal := 0
@@ -141,4 +153,12 @@ func sqliteWrite(req *prompb.WriteRequest) error {
 		zap.Int("samples-total", numSamplesTotal),
 		zap.Int64("samples-inserted", numSamplesInserted))
 	return nil
+}
+
+func (d *sqliteDriver) Read(req *prompb.ReadRequest, w io.Writer) error {
+	return nil
+}
+
+func (d *sqliteDriver) Close() {
+
 }
