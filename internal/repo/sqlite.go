@@ -4,16 +4,19 @@ import (
 	"database/sql"
 	"io"
 
+	"github.com/cornelk/hashmap"
 	"github.com/prometheus/prometheus/prompb"
 	"go.uber.org/zap"
 )
 
 type sqliteDriver struct {
+	literalCache hashmap.HashMap
 	db *sql.DB
 }
 
 func newSqlite(db *sql.DB) Driver {
 	return &sqliteDriver{
+		literalCache: hashmap.HashMap{},
 		db: db,
 	}
 }
@@ -57,6 +60,20 @@ create index if not exists literals_value_index on literals(value);
 	} else {
 		log.Info("Database Initialized", zap.String("driver", "sqlite"))
 	}
+	rows, err := db.Query("select id, value from literals")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		var value string
+		err = rows.Scan(&id, &value)
+		if err != nil {
+			return err
+		}
+		d.literalCache.Set(value, id)
+	}
 	return err
 }
 
@@ -69,6 +86,10 @@ func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
 	for _, timeseries := range req.Timeseries {
 		for _, label := range timeseries.Labels {
 			for _, literal := range []string{label.Name, label.Value} {
+				numLiteralsTotal++
+				if _, ok := d.literalCache.Get(literal); ok {
+					continue
+				}
 				result, err = db.Exec("insert or ignore into literals (value) values (?)", literal)
 				if err != nil {
 					log.Error("Failed to append literals", zap.Error(err))
@@ -80,11 +101,21 @@ func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
 					log.Error("Failed to read rows affected", zap.Error(err))
 					return err
 				}
-				numLiteralsTotal++
 				numLiteralsInserted += affected
+				row := db.QueryRow(`select id from literals where rowid = last_insert_rowid()`)
+				if row.Err() != nil {
+					log.Error("Failed to select id from timeseries where rowid = last_insert_rowid()", zap.Error(row.Err()))
+					return row.Err()
+				}
+				var id uint64
+				if err = row.Scan(&id); err != nil {
+					return err
+				}
+				d.literalCache.Set(id, literal)
 			}
 		}
 	}
+	log.Info("Labels inserted", zap.Int("total", numLiteralsTotal), zap.Int64("inserted", numLiteralsInserted))
 	numLabelsTotal := 0
 	numLabelsInserted := int64(0)
 	labelSQL := ""
@@ -109,8 +140,10 @@ func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
 			return err
 		}
 		for _, label := range ts.Labels {
-			labelSQL += `,(?, (select id from literals where value = ?), (select id from literals where value = ?))`
-			labelValue = append(labelValue, id, label.Name, label.Value)
+			labelSQL += `,(?, ?, ?)`
+			nameId, _ := d.literalCache.Get(label.Name)
+			valueId, _ := d.literalCache.Get(label.Value)
+			labelValue = append(labelValue, id, nameId, valueId)
 			numLabelsTotal++
 		}
 		for _, sample := range ts.Samples {

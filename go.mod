@@ -3,6 +3,7 @@ module github.com/ledyba/prometheus_sql_adapter
 go 1.15
 
 require (
+	github.com/cornelk/hashmap v1.0.1
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
