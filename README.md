@@ -1,4 +1,4 @@
-# [WIP] Prometheus SQL Remote Storage Adapter for Generic RDBMS
+# Prometheus SQL Remote Storage Adapter for sqlite/mysql
 
 [![Build on Linux](https://github.com/ledyba/prometheus_sql_adapter/workflows/Build%20on%20Linux/badge.svg)](https://github.com/ledyba/prometheus_sql_adapter/actions?query=workflow%3A%22Build+on+Linux%22)
 [![Build on macOS](https://github.com/ledyba/prometheus_sql_adapter/workflows/Build%20on%20macOS/badge.svg)](https://github.com/ledyba/prometheus_sql_adapter/actions?query=workflow%3A%22Build+on+macOS%22)
@@ -6,6 +6,8 @@
 [![Build single binary on Linux](https://github.com/ledyba/prometheus_sql_adapter/workflows/Build%20single%20binary%20on%20Linux/badge.svg)](https://github.com/ledyba/prometheus_sql_adapter/actions?query=workflow%3A%22Build+single+binary+on+Linux%22)
 
 Prometheus remote storage adapter, which stores timeseries data into RDBMS.
+
+Currently, *it suports only write operation*.
 
 ## Building and running
 
