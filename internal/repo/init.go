@@ -45,8 +45,9 @@ func Open(url string) error {
 		}
 		driver = newMysql(db)
 		log.Info("Database Opened", zap.String("driver", "mysql"), zap.String("url", url[8:]))
+		return nil
 	}
-  return ErrUnknownDriver
+	return ErrUnknownDriver
 }
 
 // Init drivers

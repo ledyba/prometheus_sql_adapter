@@ -133,7 +133,6 @@ func (d *sqliteDriver) writeLiteral(literal string) (bool, error) {
 		return false, err
 	}
 	d.literalCache.Insert(literal, id)
-	log.Info("inserted", zap.Int64("id", id), zap.String("literal", literal))
 	return true, nil
 }
 
@@ -157,7 +156,6 @@ func (d *sqliteDriver) write(req *prompb.WriteRequest) error {
 			}
 		}
 	}
-	log.Info("Labels inserted", zap.Int("total", numLiteralsTotal), zap.Int64("inserted", numLiteralsInserted), zap.Int("total", d.literalCache.Len()))
 	numLabelsTotal := 0
 	numLabelsInserted := int64(0)
 	labelSQL := ""

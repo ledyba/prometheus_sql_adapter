@@ -12,7 +12,7 @@ services:
       - '--listen'
       - '0.0.0.0:8080'
       - '--db'
-      - 'mysql://root:root@tcp(mysql:3306)/db'
+      - 'mysql://prom:prom@tcp(localhost:3306)/prom'
 #      - 'sqlite://file:/var/lib/sqlite/prometheus.db?cache=shared&mode=rwc'
     volumes:
       - './data/sqlite/:/var/lib/sqlite/'
@@ -20,9 +20,6 @@ services:
       - mysql
     expose:
      - '8080'
-    networks:
-      - local-link
-      - planet-link
     logging:
       driver: "json-file"
       options:
@@ -37,42 +34,16 @@ services:
     restart: always
     environment:
       - 'MYSQL_ROOT_PASSWORD=root'
-      - 'MYSQL_DATABASE=db'
+      - 'MYSQL_DATABASE=prom'
       - 'MYSQL_USER=prom'
       - 'MYSQL_PASS=prom'
     volumes:
       - './data/mysql:/var/lib/mysql/'
-    networks:
-      - local-link
+    network_mode: 'host'
     logging:
       driver: 'json-file'
       options:
         max-file: '4'
         max-size: '250m'
 
-  mysql-mon:
-    container_name: 'prometheus_sql_adapter_mysql-mon'
-    hostname: 'prometheus_sql_adapter_mysql-mon'
-    image: prom/mysqld-exporter
-    restart: always
-    environment:
-      DATA_SOURCE_NAME: 'root:root@(mysql:3306)/'
-    expose:
-      - 9104
-    networks:
-      - local-link
-      - planet-link
-    depends_on:
-      - mysql
-    logging:
-      driver: 'json-file'
-      options:
-        max-file: '4'
-        max-size: '250m'
-
-# networks
-networks:
-  local-link:
-    external: false
-  planet-link:
-    external: true
+networks: {}
