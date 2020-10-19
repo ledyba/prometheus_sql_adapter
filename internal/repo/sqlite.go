@@ -2,7 +2,9 @@ package repo
 
 import (
 	"database/sql"
+	"errors"
 	"io"
+	"sync"
 
 	"github.com/cornelk/hashmap"
 	"github.com/prometheus/prometheus/prompb"
@@ -11,13 +13,15 @@ import (
 
 type sqliteDriver struct {
 	literalCache hashmap.HashMap
-	db *sql.DB
+	db           *sql.DB
+	waitGroup    sync.WaitGroup
+	writeQueue   chan<- *prompb.WriteRequest
 }
 
 func newSqlite(db *sql.DB) Driver {
 	return &sqliteDriver{
 		literalCache: hashmap.HashMap{},
-		db: db,
+		db:           db,
 	}
 }
 
@@ -68,16 +72,72 @@ create index if not exists literals_value_index on literals(value);
 	for rows.Next() {
 		var id int64
 		var value string
-		err = rows.Scan(&id, &value)
+		err := rows.Scan(&id, &value)
 		if err != nil {
 			return err
 		}
 		d.literalCache.Set(value, id)
 	}
-	return err
+	d.writeQueue = d.startWriteQueue()
+	return nil
 }
 
+var ErrWriteQueueIsAlreadyClosed = errors.New("write queue is already closed")
+
 func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
+	select {
+	case d.writeQueue <- req:
+		return nil
+	default:
+		return ErrWriteQueueIsAlreadyClosed
+	}
+}
+
+func (d *sqliteDriver) startWriteQueue() chan<- *prompb.WriteRequest {
+	log := zap.L()
+	q := make(chan *prompb.WriteRequest, 100)
+	go func() {
+		d.waitGroup.Add(1)
+		defer d.waitGroup.Done()
+		log.Info("Writer thread started")
+		for {
+			select {
+			case req, ok := <-q:
+				if !ok {
+					return
+				}
+				err := d.write(req)
+				if err != nil {
+					log.Error("Failed to write request", zap.Error(err))
+				}
+			}
+		}
+	}()
+	return q
+}
+
+func (d *sqliteDriver) writeLiteral(literal string) (bool, error) {
+	log := zap.L()
+	var err error
+	if _, ok := d.literalCache.Get(literal); ok {
+		return false, nil
+	}
+	result, err := db.Exec("insert or ignore into literals (value) values (?); select last_insert_rowid()", literal)
+	if err != nil {
+		log.Error("Failed to append literals", zap.Error(err))
+		return false, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		log.Error("Failed to read id", zap.Error(err))
+		return false, err
+	}
+	d.literalCache.Insert(literal, id)
+	log.Info("inserted", zap.Int64("id", id), zap.String("literal", literal))
+	return true, nil
+}
+
+func (d *sqliteDriver) write(req *prompb.WriteRequest) error {
 	log := zap.L()
 	var err error
 	var result sql.Result
@@ -87,35 +147,17 @@ func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
 		for _, label := range timeseries.Labels {
 			for _, literal := range []string{label.Name, label.Value} {
 				numLiteralsTotal++
-				if _, ok := d.literalCache.Get(literal); ok {
-					continue
-				}
-				result, err = db.Exec("insert or ignore into literals (value) values (?)", literal)
+				written, err := d.writeLiteral(literal)
 				if err != nil {
-					log.Error("Failed to append literals", zap.Error(err))
 					return err
 				}
-				var affected int64
-				affected, err = result.RowsAffected()
-				if err != nil {
-					log.Error("Failed to read rows affected", zap.Error(err))
-					return err
+				if written {
+					numLiteralsInserted++
 				}
-				numLiteralsInserted += affected
-				row := db.QueryRow(`select id from literals where rowid = last_insert_rowid()`)
-				if row.Err() != nil {
-					log.Error("Failed to select id from timeseries where rowid = last_insert_rowid()", zap.Error(row.Err()))
-					return row.Err()
-				}
-				var id uint64
-				if err = row.Scan(&id); err != nil {
-					return err
-				}
-				d.literalCache.Set(id, literal)
 			}
 		}
 	}
-	log.Info("Labels inserted", zap.Int("total", numLiteralsTotal), zap.Int64("inserted", numLiteralsInserted))
+	log.Info("Labels inserted", zap.Int("total", numLiteralsTotal), zap.Int64("inserted", numLiteralsInserted), zap.Int("total", d.literalCache.Len()))
 	numLabelsTotal := 0
 	numLabelsInserted := int64(0)
 	labelSQL := ""
@@ -125,18 +167,14 @@ func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
 	sampleSQL := ""
 	sampleValue := make([]interface{}, 0)
 	for _, ts := range req.Timeseries {
-		_, err = db.Exec(`insert into timeseries default values`)
+		result, err := db.Exec(`insert into timeseries default values; select last_insert_rowid()`)
 		if err != nil {
 			log.Error("Failed to create new timeseries", zap.Error(err))
 			return err
 		}
-		row := db.QueryRow(`select id from timeseries where rowid = last_insert_rowid()`)
-		if row.Err() != nil {
-			log.Error("Failed to select id from timeseries where rowid = last_insert_rowid()", zap.Error(row.Err()))
-			return row.Err()
-		}
-		var id uint64
-		if err = row.Scan(&id); err != nil {
+		id, err := result.LastInsertId()
+		if err != nil {
+			log.Error("Failed to read new timeseries id", zap.Error(err))
 			return err
 		}
 		for _, label := range ts.Labels {
@@ -155,7 +193,7 @@ func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
 
 	// Label batch insert
 	labelSQL = `insert into labels (timeseries_id, name, value) values ` + labelSQL[1:]
-	_, err = db.Exec(labelSQL, labelValue...)
+	result, err = db.Exec(labelSQL, labelValue...)
 	if err != nil {
 		log.Error("Failed to write labels to database", zap.Error(err))
 		return err
@@ -168,7 +206,7 @@ func (d *sqliteDriver) Write(req *prompb.WriteRequest) error {
 
 	// Sample batch insert
 	sampleSQL = `insert into samples (timeseries_id, timestamp, value) values ` + sampleSQL[1:]
-	_, err = db.Exec(sampleSQL, sampleValue...)
+	result, err = db.Exec(sampleSQL, sampleValue...)
 	if err != nil {
 		log.Error("Failed to write samples to database", zap.Error(err))
 		return err
@@ -196,5 +234,7 @@ func (d *sqliteDriver) Read(req *prompb.ReadRequest, w io.Writer) error {
 }
 
 func (d *sqliteDriver) Close() {
-
+	close(d.writeQueue)
+	_ = d.db.Close()
+	d.waitGroup.Wait()
 }
