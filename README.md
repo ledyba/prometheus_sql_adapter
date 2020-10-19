@@ -7,7 +7,7 @@
 
 Prometheus remote storage adapter, which stores timeseries data into RDBMS.
 
-Currently, *it suports only write operation*.
+Currently, ***it suports only write operation***.
 
 ## Building and running
 
